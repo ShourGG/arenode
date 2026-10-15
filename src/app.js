@@ -24,6 +24,7 @@ import { authenticateApiKey, handlePublicUserCompatApi, handleUserCompatApi } fr
 import { normalizeCdnflyUrl } from './compat-path.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
 import { applyUserDefaults } from './user-defaults.js';
+import { createClientIpResolver } from './request-ip.js';
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const COOKIE = 'cdnfly_session';
@@ -72,7 +73,7 @@ async function audit(db, actorId, action, type, resourceId, detail, req) {
     }
   }
   await db.prepare('INSERT INTO audit_logs (actor_id, action, resource_type, resource_id, detail, ip) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(actorId || null, action, type, resourceId ? String(resourceId) : null, JSON.stringify(context), req.socket.remoteAddress || null);
+    .run(actorId || null, action, type, resourceId ? String(resourceId) : null, JSON.stringify(context), req.clientIp || null);
 }
 
 async function userFromSession(db, req) {
@@ -87,7 +88,7 @@ async function userFromSession(db, req) {
   const user = await db.prepare(`SELECT u.*, COALESCE(ap.role_key, 'super_admin') AS admin_role
     FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN admin_profiles ap ON ap.user_id=u.id
     WHERE s.token_hash = ? AND s.expires_at > ? AND u.status = 'active'`).get(hash, new Date().toISOString()) || null;
-  if (user) await db.prepare('UPDATE sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=?').run(hash);
+  if (user) await db.prepare('UPDATE sessions SET last_seen_at=CURRENT_TIMESTAMP,last_ip=COALESCE(?,last_ip) WHERE token_hash=?').run(req.clientIp, hash);
   return user;
 }
 
@@ -165,6 +166,7 @@ function summarizeUpstreamHealth(active, checks) {
 }
 
 export function createApp({ db, cdnfly, upstreams = null, config, billing = null, cache = null, mailer = null, turnstileFetch = fetch, dnsResolveCname }) {
+  const resolveClientIp = createClientIpResolver(config.trustedProxyCidrs);
   const loginAttempts = new Map();
   const registrationAttempts = new Map();
   const passwordResetAttempts = new Map();
@@ -276,8 +278,8 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
 
   async function issueSession(user, req) {
     const token = newSessionToken(); const expires = new Date(Date.now() + config.sessionHours * 3600_000);
-    await db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, ip, user_agent) VALUES (?, ?, ?, ?, ?)')
-      .run(tokenDigest(token), user.id, expires.toISOString(), req.socket.remoteAddress || null, String(req.headers['user-agent'] || '').slice(0, 500));
+    await db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, ip, last_ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(tokenDigest(token), user.id, expires.toISOString(), req.clientIp || null, req.clientIp || null, String(req.headers['user-agent'] || '').slice(0, 500));
     return { token, expires };
   }
 
@@ -286,7 +288,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
   }
 
   async function authenticateLogin(req, body) {
-    const key = req.socket.remoteAddress || 'unknown';
+    const key = req.clientIp || 'unknown';
     if (!await rateAllowed(cache, loginAttempts, 'login', key, 10, 15 * 60_000)) return { status: 429, error: '登录尝试过多，请稍后再试' };
     const username = String(body.username ?? body.account ?? '').trim().toLowerCase();
     await verifyTurnstile(db, config, turnstileToken(body), key, turnstileFetch);
@@ -337,7 +339,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
     }
 
     if (path === '/email-captcha') {
-      const settings = await getRuntimeSettings(db, config); const key = req.socket.remoteAddress || 'unknown';
+      const settings = await getRuntimeSettings(db, config); const key = req.clientIp || 'unknown';
       await verifyTurnstile(db, config, turnstileToken(body), key, turnstileFetch);
       let email;
       if (body.account) {
@@ -374,7 +376,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
       const settings = await getRuntimeSettings(db, config);
       if (!settings.registrationEnabled) throw Object.assign(new Error('自助注册已关闭'), { status: 403 });
       if (Number(body.accept_agreement) !== 1) throw Object.assign(new Error('请阅读并同意注册协议'), { status: 400 });
-      const email = normalizeEmail(body.email); const key = req.socket.remoteAddress || 'unknown';
+      const email = normalizeEmail(body.email); const key = req.clientIp || 'unknown';
       const eligibility = await validateRegistrationEligibility(db, settings, {
         email, inviteCode: body.inviteCode ?? body.invite_code,
         termsAccepted: true, privacyAccepted: true, ip: key,
@@ -399,6 +401,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
   }
 
   return async function app(req, res) {
+    req.clientIp = resolveClientIp(req);
     const url = new URL(req.url, config.appOrigin);
     normalizeCdnflyUrl(url);
     res.setHeader('x-content-type-options', 'nosniff');
@@ -428,7 +431,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
         const settings = await getRuntimeSettings(db, config);
         if (!settings.registrationEnabled) return json(res, 403, { error: '自助注册已关闭' });
         const body = await readBody(req);
-        const key = req.socket.remoteAddress || 'unknown';
+        const key = req.clientIp || 'unknown';
         await verifyTurnstile(db, config, body.turnstileToken, key, turnstileFetch);
         const email = normalizeEmail(body.email);
         const eligibility = await validateRegistrationEligibility(db, settings, { ...body, email, ip: key });
@@ -454,7 +457,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
       }
 
       if (url.pathname === '/api/auth/password/forgot' && req.method === 'POST') {
-        const key = req.socket.remoteAddress || 'unknown';
+        const key = req.clientIp || 'unknown';
         const settings = await getRuntimeSettings(db, config); const body = await readBody(req);
         await verifyTurnstile(db, config, body.turnstileToken, key, turnstileFetch);
         const email = normalizeEmail(body.email); const claims = await reserveVerificationSend(settings, email, key);
@@ -470,7 +473,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
       }
 
       if (url.pathname === '/api/auth/login/mfa' && req.method === 'POST') {
-        const key = req.socket.remoteAddress || 'unknown';
+        const key = req.clientIp || 'unknown';
         if (!await rateAllowed(cache, loginAttempts, 'login-mfa', key, 10, 15 * 60_000)) return json(res, 429, { error: '验证尝试过多，请稍后再试' });
         const user = await completeMfaLogin(db, config, await readBody(req)); const { token } = await issueSession(user, req);
         await db.prepare('UPDATE users SET failed_login_count=0,locked_until=NULL,last_login_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(user.id);
@@ -511,7 +514,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
 
         if (url.pathname === '/api/account/email/change/request' && req.method === 'POST') {
           const settings = await getRuntimeSettings(db, config); const body = await readBody(req);
-          const email = normalizeEmail(body.email); const key = req.socket.remoteAddress || 'unknown';
+          const email = normalizeEmail(body.email); const key = req.clientIp || 'unknown';
           let result;
           if (!settings.emailVerificationEnabled) {
             await validateSelfServiceEmail(settings, email);
@@ -558,7 +561,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
 
         if (url.pathname === '/api/admin/settings/test-email' && req.method === 'POST' && user.role === 'admin') {
           if (!isSuperAdmin(user)) return json(res, 403, { error: '仅超级管理员可测试邮件配置' });
-          const settings = await getRuntimeSettings(db, config); const body = await readBody(req); const key = req.socket.remoteAddress || 'unknown';
+          const settings = await getRuntimeSettings(db, config); const body = await readBody(req); const key = req.clientIp || 'unknown';
           await verifyTurnstile(db, config, body.turnstileToken, key, turnstileFetch);
           if (!mailer?.available) throw Object.assign(new Error('邮件服务未配置'), { status: 503 });
           const email = normalizeEmail(body.email || user.email || settings.supportEmail); const claims = await reserveVerificationSend(settings, email, key);
@@ -571,7 +574,7 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
 
         if (url.pathname === '/api/admin/settings/test-turnstile' && req.method === 'POST' && user.role === 'admin') {
           if (!isSuperAdmin(user)) return json(res, 403, { error: '仅超级管理员可测试 Turnstile 配置' });
-          const body = await readBody(req); await testTurnstileConfiguration(db, config, body.turnstileToken, req.socket.remoteAddress, turnstileFetch, user.id);
+          const body = await readBody(req); await testTurnstileConfiguration(db, config, body.turnstileToken, req.clientIp, turnstileFetch, user.id);
           await audit(db, user.id, 'settings.turnstile.test', 'settings', null, null, req);
           return json(res, 200, { ok: true });
         }

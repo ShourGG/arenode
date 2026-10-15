@@ -47,6 +47,7 @@ export function loadConfig(overrides = {}) {
     adminUsername: process.env.ADMIN_USERNAME || 'admin',
     adminPassword: process.env.ADMIN_PASSWORD || '',
     sessionHours: intEnv('SESSION_HOURS', 24, 1),
+    trustedProxyCidrs: (process.env.TRUSTED_PROXY_CIDRS || '').split(/[,\s]+/).filter(Boolean),
     allowRegistration: boolEnv('ALLOW_REGISTRATION', false),
     emailVerificationEnabled: boolEnv('EMAIL_VERIFICATION_ENABLED', false),
     requireLegalConsent: boolEnv('REQUIRE_LEGAL_CONSENT', true),

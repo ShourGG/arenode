@@ -574,7 +574,7 @@
             </section>
             <section id="mfaPanel" class="panel account-mfa-panel"><div class="panel-head"><div><h3>动态验证</h3><p>登录时使用验证器动态码或一次性恢复码</p></div><span id="mfaStatus" class="badge off">未启用</span></div><div class="account-action-row"><div><strong>TOTP 动态验证</strong><small id="mfaDescription">支持所有用户和管理员账号</small></div><button id="configureMfaButton" class="primary">配置 MFA</button></div></section>
           </div>
-          <section class="panel account-wide"><div class="panel-head"><div><h3>登录设备</h3><p>显示最近的有效会话，可单独撤销</p></div><button id="refreshSessions" class="secondary">刷新</button></div><div class="table-wrap"><table><thead><tr><th>设备</th><th>IP</th><th>最近活动</th><th>到期时间</th><th class="right">操作</th></tr></thead><tbody id="sessionTable"></tbody></table></div></section>
+          <section class="panel account-wide"><div class="panel-head"><div><h3>登录设备</h3><p>显示设备最近访问的 IP，单独保留登录时 IP，可撤销会话</p></div><button id="refreshSessions" class="secondary">刷新</button></div><div class="table-wrap"><table><thead><tr><th>设备</th><th>最近访问 IP</th><th>最近活动</th><th>到期时间</th><th class="right">操作</th></tr></thead><tbody id="sessionTable"></tbody></table></div></section>
           <section class="panel danger-zone customer-only"><div class="panel-head"><div><h3>注销账号</h3><p>仅在余额为零且没有套餐、网站和 CDN 服务资源时可注销</p></div><span id="accountClosureBadge" class="badge pending">检查中</span></div><div class="danger-zone-body"><ul id="accountClosureStatus"></ul><form id="closeAccountForm" class="account-form"><label>当前密码<input name="currentPassword" type="password" autocomplete="current-password" required></label><label id="closeAccountMfaField" class="hidden">动态验证码或恢复码<input name="mfaCode" autocomplete="one-time-code"></label><label class="consent-row"><input name="confirmed" type="checkbox" required><span>我确认注销后账号将无法登录，历史订单和财务记录仍会保留</span></label><button class="danger-button" type="submit">注销账号</button></form></div></section>
         </section>
       </main>
@@ -755,6 +755,6 @@
   <dialog id="recordDialog" class="wide-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">RECORDS</p><h3 id="recordDialogTitle">记录</h3></div><button type="button" class="icon-button" data-close="recordDialog" aria-label="关闭">×</button></div><div id="recordDialogBody" class="record-list"></div><div class="dialog-actions"><button type="button" class="primary" data-close="recordDialog">关闭</button></div></form></dialog>
   <dialog id="inviteDialog"><form id="inviteForm" method="dialog"><div class="dialog-head"><div><p class="eyebrow">REGISTRATION INVITE</p><h3>生成邀请码</h3></div><button type="button" class="icon-button" data-close="inviteDialog" aria-label="关闭">×</button></div><label>生成数量<input name="count" type="number" min="1" max="100" value="1" required></label><label>单码可用次数<input name="maxUses" type="number" min="1" max="100000" value="1" required></label><label>过期时间<input name="expiresAt" type="datetime-local"></label><label>标签<input name="label" maxlength="120"></label><div class="dialog-actions"><button type="button" class="secondary" data-close="inviteDialog">取消</button><button type="submit" class="primary">生成邀请码</button></div></form></dialog>
 
-      <script type="module" src="/app.js?v=status2"></script>
+      <script type="module" src="/app.js?v=sessionip1"></script>
 </body>
 </html>

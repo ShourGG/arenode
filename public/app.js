@@ -1678,8 +1678,8 @@ async function loadAccountSecurity() {
   const [mfa, sessions, closure, apiKeyResult] = await Promise.all([api('/api/account/mfa'), api('/api/account/sessions'), customer ? api('/api/account/closure') : Promise.resolve(null), customer ? api('/api/cdnfly/v1/api-key').catch(() => ({ data: { items: [] } })) : Promise.resolve({ data: { items: [] } })]); state.mfa = mfa; state.accountClosure = closure; state.apiKeys = apiKeyResult?.data?.items || [];
   $('#mfaStatus').className = `badge ${mfa.enabled ? 'active' : 'off'}`; $('#mfaStatus').textContent = mfa.enabled ? '已启用' : '未启用';
   $('#mfaDescription').textContent = mfa.enabled ? `剩余 ${mfa.recoveryCodesRemaining} 枚恢复码` : '用户和管理员均可独立配置'; $('#configureMfaButton').textContent = mfa.enabled ? '解绑 MFA' : '配置 MFA';
-  $('#sessionTable').replaceChildren(...sessions.sessions.slice(0, 10).map(session => { const tr = document.createElement('tr'); tr.innerHTML = '<td><strong></strong><small></small></td><td></td><td></td><td></td><td class="right"><button class="danger">撤销</button></td>';
-    $('strong', tr).textContent = session.current ? '当前设备' : '登录设备'; $('small', tr).textContent = session.userAgent || '未知客户端'; tr.children[1].textContent = session.ip || '-'; tr.children[2].textContent = formatDate(session.lastSeenAt); tr.children[3].textContent = formatDate(session.expiresAt); $('button', tr).dataset.revokeSession = session.id; return tr; }));
+  $('#sessionTable').replaceChildren(...sessions.sessions.slice(0, 10).map(session => { const tr = document.createElement('tr'); tr.innerHTML = '<td><strong></strong><small></small></td><td><strong></strong><small></small></td><td></td><td></td><td class="right"><button class="danger">撤销</button></td>';
+    $('strong', tr).textContent = session.current ? '当前设备' : '登录设备'; $('small', tr).textContent = session.userAgent || '未知客户端'; $('strong', tr.children[1]).textContent = session.lastIp || '待设备再次访问'; $('small', tr.children[1]).textContent = `登录时：${session.ip || '-'}`; tr.children[2].textContent = formatDate(session.lastSeenAt); tr.children[3].textContent = formatDate(session.expiresAt); $('button', tr).dataset.revokeSession = session.id; return tr; }));
   if (customer) {
     $('#closeAccountMfaField').classList.toggle('hidden', !mfa.enabled); $('#closeAccountForm').elements.mfaCode.required = Boolean(mfa.enabled);
     renderAccountClosure(closure);
@@ -2726,7 +2726,7 @@ async function openCustomerDetail(id) {
     detailSection('最近套餐', (result.subscriptions || []).slice(0, 6).map(item => [`#${item.id} ${item.plan_name}`, `${formatDate(item.starts_at)} 至 ${formatDate(item.ends_at)} · ${item.status}`])),
     detailSection('最近网站', (result.sites || []).slice(0, 6).map(item => [item.domain, `${item.enabled ? '正常' : '已停用'} · ${formatDate(item.created_at)}`])),
     detailSection('最近订单', (result.orders || []).slice(0, 6).map(item => [`订单 #${item.id}`, `${item.product_name || item.type} · ${formatMoney(item.amount_cents)} · ${item.status}`])),
-    detailSection('登录设备', (result.sessions || []).slice(0, 6).map(item => [item.ip || '未知 IP', `${item.user_agent || '未知客户端'} · ${formatDate(item.last_seen_at)}`])),
+    detailSection('登录设备', (result.sessions || []).slice(0, 6).map(item => [`最近访问 IP：${item.last_ip || '待设备再次访问'}`, `最近访问：${formatDate(item.last_seen_at)} · 登录时 IP：${item.ip || '未知 IP'} · ${item.user_agent || '未知客户端'}`])),
     detailSection('最近审计', (result.recentAudit || []).slice(0, 6).map(item => [auditActionLabel(item), `${auditEntityLabel(item)}${item.resource_id ? ` #${item.resource_id}` : ''} · ${formatDate(item.created_at)}`])),
   );
   $('#customerDetailDialog').showModal();

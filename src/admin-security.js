@@ -14,10 +14,10 @@ async function adminRow(db, id) {
 
 export async function handleAdminSecurityApi({ req, url, user, db, tokenHash, readBody }) {
   if (url.pathname === '/api/account/sessions' && req.method === 'GET') {
-    const rows = await db.prepare(`SELECT token_hash, ip, user_agent, last_seen_at, created_at, expires_at
+    const rows = await db.prepare(`SELECT token_hash, ip, last_ip, user_agent, last_seen_at, created_at, expires_at
       FROM sessions WHERE user_id=? AND expires_at>? ORDER BY last_seen_at DESC`).all(user.id, new Date().toISOString());
     return { status: 200, data: { sessions: rows.map(row => ({
-      id: row.token_hash.slice(0, 16), current: row.token_hash === tokenHash, ip: row.ip,
+      id: row.token_hash.slice(0, 16), current: row.token_hash === tokenHash, ip: row.ip, lastIp: row.last_ip,
       userAgent: row.user_agent, lastSeenAt: row.last_seen_at, createdAt: row.created_at, expiresAt: row.expires_at,
     })) } };
   }

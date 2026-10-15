@@ -17,7 +17,7 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.data-workbench\s*\{\s*display:\s*block/);
   assert.doesNotMatch(css, /#adminBillingTabs[^{}]*\{[^{}]*display:\s*none/);
   assert.match(html, /styles\.css\?v=status2/);
-  assert.match(html, /app\.js\?v=status2/);
+  assert.match(html, /app\.js\?v=sessionip1/);
   assert.match(app, /if \(autoRenew\) autoRenew\.checked/);
   assert.match(app, /if \(last\) paintServiceStatus\(last\)/);
   assert.match(app, /sessionStorage\.setItem\('arenode-service-status'/);
