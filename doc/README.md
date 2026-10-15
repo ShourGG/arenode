@@ -21,6 +21,7 @@
 ## 部署与验收
 
 - [生产部署验收清单](./DEPLOYMENT_CHECKLIST.md)：配置、密钥、注册安全、租户隔离、计费、备份、恢复和发布检查。
+- [证书上传网络排查](./UPLOAD_TROUBLESHOOTING.md)：路径 MTU 验证与可选应用出口网络配置。
 - [安全策略](../SECURITY.md)：漏洞报告方式和生产部署安全要求。
 - [贡献指南](../CONTRIBUTING.md)：开发环境、代码要求与 Pull Request 约定。
 
