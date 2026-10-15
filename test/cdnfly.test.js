@@ -20,6 +20,8 @@ test('普通用户密钥以正确请求头发送，套餐只能来自服务端�
   });
   const result = await client.createSite({
     domain: 'www.example.com', origin: '192.0.2.10', user_package: 999, uid: 7, new_uid: 8,
+    extra_cc_rule: [{ des: 'AI API', matcher: [], filter: {}, mode: 'break', enable: 1 }],
+    proxy_cache: [], proxy_timeout: 600, proxy_http_version: '1.1', websocket_enable: 1,
   });
   assert.deepEqual(result, { id: '123' });
   assert.equal(captured.url, 'https://panel.example.com/api/v1/sites');
@@ -29,6 +31,32 @@ test('普通用户密钥以正确请求头发送，套餐只能来自服务端�
   assert.equal(captured.body.https_listen, undefined);
   assert.equal(captured.body.uid, undefined);
   assert.equal(captured.body.new_uid, undefined);
+  assert.equal(captured.body.proxy_timeout, 600);
+  assert.equal(captured.body.proxy_http_version, '1.1');
+  assert.equal(captured.body.websocket_enable, 1);
+  assert.deepEqual(captured.body.proxy_cache, []);
+  assert.equal(captured.body.extra_cc_rule[0].des, 'AI API');
+});
+
+test('数字形式的上游用户套餐 ID 以 JSON 数字提交', async () => {
+  let captured;
+  const client = new CdnflyClient({ ...config, cdnflyUserPackageId: '16180' }, async (_url, init) => {
+    captured = JSON.parse(init.body);
+    return Response.json({ code: 0, data: { id: 123 } });
+  });
+  await client.createSite({ domain: 'numeric-package.example.com', origin: '192.0.2.11' });
+  assert.equal(captured.user_package, 16180);
+  assert.equal(typeof captured.user_package, 'number');
+});
+
+test('非数字上游套餐 ID 保持原样', async () => {
+  let captured;
+  const client = new CdnflyClient({ ...config, cdnflyUserPackageId: 'pkg-a' }, async (_url, init) => {
+    captured = JSON.parse(init.body);
+    return Response.json({ code: 0, data: { id: 124 } });
+  });
+  await client.createSite({ domain: 'text-package.example.com', origin: '192.0.2.12' });
+  assert.equal(captured.user_package, 'pkg-a');
 });
 
 test('HTTP 200 内的 CDNFly 业务错误会被识别', async () => {
@@ -88,6 +116,91 @@ test('GET 最多尝试三次，PUT 尝试两次，POST 不自动重试', async (
   await assert.rejects(() => createClient.request('POST', '/v1/sites', {}), /CDN 服务暂时不可用/);
   assert.equal(creates, 1);
 });
+
+test('建站回包断线后按域名和客户分组接管已创建的上游网站', async () => {
+  let creates = 0; let reads = 0;
+  const client = new CdnflyClient(config, async (_url, init) => {
+    if (init.method === 'POST') {
+      creates += 1;
+      throw Object.assign(new Error('socket reset'), { cause: { code: 'ECONNRESET' } });
+    }
+    reads += 1;
+    return Response.json({ code: 0, data: { items: [
+      { id: 321, domain: 'recovered.example.com', groups: '8,3168' },
+      { id: 999, domain: 'recovered.example.com', groups: '99' },
+    ] } });
+  });
+  const result = await client.createSite({
+    domain: 'recovered.example.com', origin: '192.0.2.20', groups: '3168',
+  });
+  assert.deepEqual(result, { id: '321' });
+  assert.equal(creates, 1);
+  assert.equal(reads, 1);
+});
+
+test('建站断线且确认上游未创建时只受控重试一次', async () => {
+  let creates = 0; let reads = 0;
+  const client = new CdnflyClient(config, async (_url, init) => {
+    if (init.method === 'POST') {
+      creates += 1;
+      if (creates === 1) throw Object.assign(new Error('socket reset'), { cause: { code: 'ECONNRESET' } });
+      return Response.json({ code: 0, data: { id: 654 } });
+    }
+    reads += 1;
+    return Response.json({ code: 0, data: { items: [] } });
+  });
+  const result = await client.createSite({
+    domain: 'retry.example.com', origin: '192.0.2.21', groups: '3168',
+  });
+  assert.deepEqual(result, { id: '654' });
+  assert.equal(creates, 2);
+  assert.equal(reads, 3);
+});
+
+test('建站断线后恢复查询也失败时不盲目重放 POST', async () => {
+  let creates = 0; let reads = 0;
+  const client = new CdnflyClient(config, async (_url, init) => {
+    if (init.method === 'POST') {
+      creates += 1;
+      throw Object.assign(new Error('socket reset'), { cause: { code: 'ECONNRESET' } });
+    }
+    reads += 1;
+    throw Object.assign(new Error('read timed out'), { cause: { code: 'ETIMEDOUT' } });
+  });
+  await assert.rejects(() => client.createSite({
+    domain: 'unknown.example.com', origin: '192.0.2.22', groups: '3168',
+  }), error => error instanceof CdnflyError && error.causeCode === 'ECONNRESET');
+  assert.equal(creates, 1);
+  assert.equal(reads, 9);
+});
+
+test('恢复建站结果会继续读取被上游缩小的分页', async () => {
+  let creates = 0;
+  const client = new CdnflyClient(config, async (url, init) => {
+    if (init.method === 'POST') { creates += 1; throw new Error('socket reset'); }
+    const page = new URL(url).searchParams.get('page');
+    return Response.json({ code: 0, data: { items: page === '1'
+      ? [{ id: 111, domain: 'other.example.com', groups: '42' }]
+      : [{ id: 222, domain: 'paged.example.com', groups: '42' }] } });
+  });
+  assert.deepEqual(await client.createSite({ domain: 'paged.example.com', origin: '192.0.2.30', groups: '42' }), { id: '222' });
+  assert.equal(creates, 1);
+});
+
+for (const [label, data] of [
+  ['未知响应结构', { unexpected: [] }],
+  ['分页没有推进', { items: [{ id: 111, domain: 'other.example.com', groups: '42' }] }],
+]) {
+  test(`恢复建站查询${label}时保留原始错误且不重放 POST`, async () => {
+    let creates = 0;
+    const client = new CdnflyClient(config, async (_url, init) => {
+      if (init.method === 'POST') { creates += 1; throw new Error('socket reset'); }
+      return Response.json({ code: 0, data });
+    });
+    await assert.rejects(() => client.createSite({ domain: 'unknown.example.com', origin: '192.0.2.31', groups: '42' }), CdnflyError);
+    assert.equal(creates, 1);
+  });
+}
 
 test('上游 HTTP 状态会保留用于能力判断但不会直接透传响应状态', async () => {
   const client = new CdnflyClient(config, async () => new Response('Not Found', { status: 404 }));

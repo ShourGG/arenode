@@ -75,12 +75,54 @@ function retryDelay(attempt) {
   return new Promise(resolve => setTimeout(resolve, 80 * (attempt + 1)));
 }
 
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function collectionItems(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== 'object') return null;
+  for (const key of ['items', 'data', 'list', 'rows']) {
+    const items = collectionItems(value[key]);
+    if (items !== null) return items;
+  }
+  return null;
+}
+
+function identityParts(value) {
+  if (Array.isArray(value)) return value.flatMap(identityParts);
+  return String(value ?? '').split(/[,\s]+/).map(item => item.trim()).filter(Boolean);
+}
+
+function sameDomains(left, right) {
+  const normalize = value => [...new Set(identityParts(value).map(item => item.toLowerCase()))].sort();
+  const a = normalize(left); const b = normalize(right);
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function ambiguousCreateFailure(error) {
+  return error instanceof CdnflyError
+    && (error.upstreamStatus === null || RETRYABLE_STATUS.has(Number(error.upstreamStatus)));
+}
+
+function upstreamIdentifier(value) {
+  if (typeof value === 'number') return value;
+  const text = String(value ?? '').trim();
+  if (/^(?:0|[1-9]\d*)$/.test(text)) {
+    const numeric = Number(text);
+    if (Number.isSafeInteger(numeric)) return numeric;
+  }
+  return value;
+}
+
 export class CdnflyClient {
   constructor(config, fetchImpl = fetch, cache = null) {
     this.baseUrl = config.cdnflyBaseUrl;
     this.apiKey = config.cdnflyApiKey;
     this.apiSecret = config.cdnflyApiSecret;
-    this.packageId = config.cdnflyUserPackageId;
+    // PostgreSQL stores cross-version package identifiers as TEXT, while
+    // CDNFly v6 validates numeric user-package instances as JSON numbers.
+    this.packageId = upstreamIdentifier(config.cdnflyUserPackageId);
     this.accountId = config.cdnflyAccountId || null;
     this.groupNamespace = config.upstreamGroupNamespace
       || configInternals.defaultUpstreamGroupNamespace(config.appOrigin || config.cdnflyBaseUrl || 'local');
@@ -209,6 +251,7 @@ export class CdnflyClient {
     for (const field of [
       'http_listen', 'https_listen', 'backend_http_port', 'backend_https_port', 'proxy_timeout', 'balance_way',
       'block_proxy', 'recv_real_time', 'send_real_time', 'enable_ipv6', 'black_ip', 'white_ip', 'spider_to_sip',
+      'extra_cc_rule', 'proxy_cache', 'proxy_http_version',
     ]) {
       if (input[field] !== undefined) {
         payload[field] = input[field] && typeof input[field] === 'object' && !Array.isArray(input[field])
@@ -217,14 +260,64 @@ export class CdnflyClient {
       }
     }
     if (input.backend_protocol !== undefined && input.backendProtocol === undefined) payload.backend_protocol = input.backend_protocol;
-    if (input.websocket_enable !== undefined && input.websocket === undefined) payload.websocket_enable = input.websocket_enable;
+    if (input.websocket_enable !== undefined) payload.websocket_enable = input.websocket_enable;
     if (input.gzip_enable !== undefined && input.gzip === undefined) payload.gzip_enable = input.gzip_enable;
     if (input.groups !== undefined) payload.groups = String(input.groups);
-    const data = await this.request('POST', '/v1/sites', payload);
+    let data;
+    try {
+      data = await this.request('POST', '/v1/sites', payload);
+    } catch (firstError) {
+      if (!ambiguousCreateFailure(firstError)) throw firstError;
+      const recovered = await this.recoverCreatedSite(payload);
+      if (recovered.site) return recovered.site;
+      if (!recovered.confirmedMissing) throw firstError;
+      try {
+        data = await this.request('POST', '/v1/sites', payload);
+      } catch (retryError) {
+        const recoveredAfterRetry = await this.recoverCreatedSite(payload);
+        if (recoveredAfterRetry.site) return recoveredAfterRetry.site;
+        throw retryError;
+      }
+    }
     const rawId = typeof data === 'object' ? (data.id ?? data.ids ?? data.site_id) : data;
     const id = String(rawId ?? '').split(',')[0].trim();
     if (!id) throw new CdnflyError('CDN 服务创建成功但未返回网站 ID');
     return { id };
+  }
+
+  async recoverCreatedSite(payload) {
+    const delays = [0, 250, 750];
+    let successfulReads = 0;
+    for (const delay of delays) {
+      if (delay) await wait(delay);
+      try {
+        const seenPages = new Set();
+        // Some providers cap page_size below the requested value. Only an
+        // empty page confirms the end; a short first page proves nothing.
+        for (let page = 1; page <= 100; page += 1) {
+          const data = await this.performRequest('GET', `/v1/sites?page=${page}&page_size=100`);
+          const items = collectionItems(data);
+          if (!items) break;
+          const match = items.find(item => {
+            if (!sameDomains(item?.domain, payload.domain)) return false;
+            if (payload.groups === undefined) return true;
+            return identityParts(item?.groups ?? item?.group_id).includes(String(payload.groups));
+          });
+          const id = String(match?.id ?? match?.site_id ?? '').trim();
+          if (id) {
+            if (this.cache) await this.cache.invalidate();
+            return { site: { id }, confirmedMissing: false };
+          }
+          if (!items.length) { successfulReads += 1; break; }
+          const signature = items.map(item => item?.id ?? item?.site_id ?? '').join(',');
+          if (seenPages.has(signature)) break;
+          seenPages.add(signature);
+        }
+      } catch {
+        // A failed recovery read must not hide the original create result.
+      }
+    }
+    return { site: null, confirmedMissing: successfulReads === delays.length };
   }
 
   getSite(id) {
