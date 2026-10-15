@@ -4,6 +4,7 @@ import { normalizeCdnflyUrl } from './compat-path.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
 import { applyUserDefaults } from './user-defaults.js';
 import { OWNERSHIP_REMARK_KINDS, exposeOwnershipRemark, ownershipMarker, ownershipRemark } from './resource-ownership.js';
+import { applySiteProfile } from './site-profiles.js';
 
 const RESOURCE_KINDS = new Set([
   'site-groups', 'certs', 'dnsapis', 'cc-filters', 'cc-matchs', 'cc-rules', 'waf-rules',
@@ -1568,7 +1569,8 @@ export async function handleTenantProxy({ req, url, user, db, cdnfly, upstreams 
     const clean = await Promise.all(inputs.map(async (item, index) => {
       const defaulted = await applyUserDefaults(db, user.id, 'site', localGroupIds[index], item);
       validateCompatSiteInput(defaulted);
-      const translated = await translateSiteReferences(db, defaulted, user.id, false, upstreamClient.accountId);
+      const profiled = applySiteProfile(defaulted, subscriptions[index]?.site_profile);
+      const translated = await translateSiteReferences(db, profiled, user.id, false, upstreamClient.accountId);
       translated.user_package = upstreamClient.packageId;
       if (customerGroups?.site) translated.groups = String(customerGroups.site.upstream_group_id);
       return translated;

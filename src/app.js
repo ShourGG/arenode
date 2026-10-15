@@ -24,6 +24,7 @@ import { authenticateApiKey, handlePublicUserCompatApi, handleUserCompatApi } fr
 import { normalizeCdnflyUrl } from './compat-path.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
 import { applyUserDefaults } from './user-defaults.js';
+import { applySiteProfile } from './site-profiles.js';
 import { createClientIpResolver } from './request-ip.js';
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
@@ -703,13 +704,14 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
           else if (current >= user.site_limit) return json(res, 409, { error: '站点额度已用完，请联系管理员' });
           const duplicate = await db.prepare('SELECT id FROM sites WHERE domain = ?').get(input.domain);
           if (duplicate) return json(res, 409, { error: '域名已存在' });
+          const profiled = applySiteProfile({ ...defaulted, ...input }, subscription?.site_profile);
           const upstreamClient = upstreams && subscription ? await upstreams.clientForSubscription(subscription) : cdnfly;
           const customerGroups = await ensureCustomerUpstreamGroups(db, upstreamClient, user.id);
           const pending = await db.prepare(`INSERT INTO sites (owner_id, subscription_id, upstream_account_id, local_group_id, domain, origin, backend_protocol, backend_host, websocket, gzip, enabled, state)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'provisioning')`)
-            .run(user.id, subscription?.id || null, subscription?.upstream_id || null, requestedGroupId, input.domain, input.origin, input.backendProtocol || 'http', input.backendHost || input.domain, Number(Boolean(input.websocket)), Number(Boolean(input.gzip)));
+            .run(user.id, subscription?.id || null, subscription?.upstream_id || null, requestedGroupId, input.domain, input.origin, input.backendProtocol || 'http', input.backendHost || input.domain, Number(Boolean(profiled.websocket_enable ?? input.websocket)), Number(Boolean(input.gzip)));
           try {
-            const upstream = await upstreamClient.createSite({ ...defaulted, ...input,
+            const upstream = await upstreamClient.createSite({ ...profiled,
               ...(customerGroups?.site ? { groups: String(customerGroups.site.upstream_group_id) } : {}) });
             await db.prepare(`UPDATE sites SET upstream_id = ?, state = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(upstream.id, pending.lastInsertRowid);
             if (billing) await billing.syncSitePorts(Number(pending.lastInsertRowid), defaulted);

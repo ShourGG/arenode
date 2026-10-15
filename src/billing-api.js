@@ -1,3 +1,4 @@
+import { normalizeSiteProfile } from './site-profiles.js';
 import { billingInternals } from './billing.js';
 import { changeBalance } from './wallet.js';
 import { pagination, paged, searchLike } from './http-utils.js';
@@ -333,6 +334,7 @@ function adminPlanInput(body, current = {}) {
       ? Number(billingInternals.destroyCollisionCode(current)) : Number(Boolean(body.destroyCollisionCode)),
     renewalMode: body.renewalMode === undefined ? billingInternals.renewalMode(current) : String(body.renewalMode || '').trim(),
     renewalWindowDays: body.renewalWindowDays === undefined ? billingInternals.renewalWindowDays(current) : int(body.renewalWindowDays, '续费窗口天数', { min: 1 }),
+    siteProfile: normalizeSiteProfile(body.siteProfile === undefined ? current.site_profile : body.siteProfile),
     upstreamId: body.upstreamId === undefined ? (current.upstream_id ?? null) : int(body.upstreamId, '上游账号', { min: 1, nullable: true }),
     upstreamPackageId: body.upstreamPackageId === undefined ? (current.upstream_package_id ?? null) : String(body.upstreamPackageId || '').trim() || null,
   };
@@ -529,8 +531,8 @@ export async function handleBillingApi({ req, url, user, db, billing, readBody }
     const path = url.pathname.slice(adminPrefix.length) || '/';
     if (path === '/plans' && req.method === 'GET') return { status: 200, data: { plans: (await db.prepare(`SELECT p.*,ua.name AS upstream_name,up.name AS upstream_package_name FROM plans p
       LEFT JOIN upstream_accounts ua ON ua.id=p.upstream_id LEFT JOIN upstream_packages up ON up.upstream_id=p.upstream_id AND up.package_id=p.upstream_package_id ORDER BY p.sort,p.id`).all()).map(row => ({ ...billingInternals.planPublic(row), upstreamName: row.upstream_name || null, upstreamPackageName: row.upstream_package_name || null })) } };
-    if (path === '/plans' && req.method === 'POST') { const input = adminPlanInput(await readBody(req)); if (!input.code || !input.name) throw httpError('套餐代码和名称必填'); input.purchaseMode = normalizePurchaseMode(input.purchaseMode); input.renewalMode = normalizeRenewalMode(input.renewalMode); await validatePlanMapping(db, input); const id = (await db.prepare(`INSERT INTO plans (group_id, code, name, description, price_cents, duration_days, domain_limit, traffic_limit_bytes, port_limit, enabled, sort, purchase_mode, max_purchase_qty, destroy_collision_code, renewal_mode, renewal_window_days, upstream_id, upstream_package_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(input.groupId, input.code, input.name, input.description, input.priceCents, input.durationDays, input.domainLimit, input.trafficLimitBytes, input.portLimit, input.enabled, input.sort, input.purchaseMode, input.maxPurchaseQty, input.destroyCollisionCode, input.renewalMode, input.renewalWindowDays, input.upstreamId, input.upstreamPackageId)).lastInsertRowid; return { status: 201, data: { plan: billingInternals.planPublic(await db.prepare('SELECT * FROM plans WHERE id = ?').get(id)) }, action: 'plan.create', resourceId: id }; }
+    if (path === '/plans' && req.method === 'POST') { const input = adminPlanInput(await readBody(req)); if (!input.code || !input.name) throw httpError('套餐代码和名称必填'); input.purchaseMode = normalizePurchaseMode(input.purchaseMode); input.renewalMode = normalizeRenewalMode(input.renewalMode); await validatePlanMapping(db, input); const id = (await db.prepare(`INSERT INTO plans (group_id, code, name, description, price_cents, duration_days, domain_limit, traffic_limit_bytes, port_limit, enabled, sort, purchase_mode, max_purchase_qty, destroy_collision_code, renewal_mode, renewal_window_days, site_profile, upstream_id, upstream_package_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(input.groupId, input.code, input.name, input.description, input.priceCents, input.durationDays, input.domainLimit, input.trafficLimitBytes, input.portLimit, input.enabled, input.sort, input.purchaseMode, input.maxPurchaseQty, input.destroyCollisionCode, input.renewalMode, input.renewalWindowDays, input.siteProfile, input.upstreamId, input.upstreamPackageId)).lastInsertRowid; return { status: 201, data: { plan: billingInternals.planPublic(await db.prepare('SELECT * FROM plans WHERE id = ?').get(id)) }, action: 'plan.create', resourceId: id }; }
     const adminPlan = path.match(/^\/plans\/(\d+)$/);
     if (adminPlan) {
       const current = await db.prepare('SELECT * FROM plans WHERE id = ?').get(Number(adminPlan[1]));
@@ -540,8 +542,8 @@ export async function handleBillingApi({ req, url, user, db, billing, readBody }
         i.purchaseMode = normalizePurchaseMode(i.purchaseMode);
         i.renewalMode = normalizeRenewalMode(i.renewalMode);
         await validatePlanMapping(db, i);
-        await db.prepare(`UPDATE plans SET group_id=?, code=?, name=?, description=?, price_cents=?, duration_days=?, domain_limit=?, traffic_limit_bytes=?, port_limit=?, enabled=?, sort=?, purchase_mode=?, max_purchase_qty=?, destroy_collision_code=?, renewal_mode=?, renewal_window_days=?, upstream_id=?,upstream_package_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-          .run(i.groupId, i.code, i.name, i.description, i.priceCents, i.durationDays, i.domainLimit, i.trafficLimitBytes, i.portLimit, i.enabled, i.sort, i.purchaseMode, i.maxPurchaseQty, i.destroyCollisionCode, i.renewalMode, i.renewalWindowDays, i.upstreamId, i.upstreamPackageId, current.id);
+        await db.prepare(`UPDATE plans SET group_id=?, code=?, name=?, description=?, price_cents=?, duration_days=?, domain_limit=?, traffic_limit_bytes=?, port_limit=?, enabled=?, sort=?, purchase_mode=?, max_purchase_qty=?, destroy_collision_code=?, renewal_mode=?, renewal_window_days=?, site_profile=?, upstream_id=?,upstream_package_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .run(i.groupId, i.code, i.name, i.description, i.priceCents, i.durationDays, i.domainLimit, i.trafficLimitBytes, i.portLimit, i.enabled, i.sort, i.purchaseMode, i.maxPurchaseQty, i.destroyCollisionCode, i.renewalMode, i.renewalWindowDays, i.siteProfile, i.upstreamId, i.upstreamPackageId, current.id);
         await billing.enforceAll({ syncTraffic: false });
         return { status: 200, data: { plan: billingInternals.planPublic(await db.prepare('SELECT * FROM plans WHERE id = ?').get(current.id)) }, action: 'plan.update', resourceId: current.id };
       }

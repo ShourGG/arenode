@@ -197,6 +197,9 @@ ALTER TABLE plans ADD CONSTRAINT plans_renewal_mode_check CHECK (renewal_mode IN
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS renewal_window_days INTEGER NOT NULL DEFAULT 7;
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_renewal_window_days_check;
 ALTER TABLE plans ADD CONSTRAINT plans_renewal_window_days_check CHECK (renewal_window_days >= 1);
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS site_profile TEXT NOT NULL DEFAULT 'web';
+ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_site_profile_check;
+ALTER TABLE plans ADD CONSTRAINT plans_site_profile_check CHECK (site_profile IN ('web', 'openai', 'anthropic', 'gemini', 'azure_openai', 'cohere', 'china_ai', 'mixed_ai'));
 CREATE TABLE IF NOT EXISTS subscriptions (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

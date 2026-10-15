@@ -1,3 +1,4 @@
+import { normalizeSiteProfile } from './site-profiles.js';
 import crypto from 'node:crypto';
 import { changeBalance } from './wallet.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
@@ -100,6 +101,7 @@ function planPublic(row) {
     trafficLimitBytes: row.traffic_limit_bytes, portLimit: row.port_limit, enabled: Boolean(row.enabled), sort: row.sort,
     purchaseMode: purchaseMode(row), maxPurchaseQty: maxPurchaseQty(row), destroyCollisionCode: destroyCollisionCode(row),
     renewalMode: renewalMode(row), renewalWindowDays: renewalWindowDays(row),
+    siteProfile: normalizeSiteProfile(row.site_profile),
     upstreamId: row.upstream_id ? Number(row.upstream_id) : null, upstreamPackageId: row.upstream_package_id || null,
   };
 }
@@ -209,7 +211,7 @@ export class BillingService {
         AND ((auto_renew=0 AND grace_ends_at IS NULL AND ends_at<=?) OR (grace_ends_at IS NOT NULL AND grace_ends_at<=?))`).run(userId, now, now);
     return this.db.prepare(`SELECT s.*, p.group_id, p.code, p.name AS plan_name, p.description AS plan_description,
       p.price_cents, p.duration_days, p.domain_limit, p.traffic_limit_bytes, p.port_limit, p.enabled AS plan_enabled,
-      p.purchase_mode, p.max_purchase_qty, p.renewal_mode, p.renewal_window_days
+      p.purchase_mode, p.max_purchase_qty, p.renewal_mode, p.renewal_window_days, p.site_profile
       FROM subscriptions s JOIN plans p ON p.id = s.plan_id
       WHERE s.user_id = ? AND s.status IN ('active', 'suspended') AND s.starts_at <= ?
         AND (s.ends_at > ? OR (s.grace_ends_at IS NOT NULL AND s.grace_ends_at > ?))
