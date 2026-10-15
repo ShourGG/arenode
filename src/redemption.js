@@ -38,17 +38,21 @@ function publicCode(row) {
     id: row.id, suffix: row.code_suffix, label: row.label, type: row.type, productId: row.product_id,
     productName: row.product_name || null, amount: row.amount, maxUses: row.max_uses, usedCount: row.used_count,
     status, startsAt: row.starts_at, expiresAt: row.expires_at, createdAt: row.created_at,
+    destroyedByUserId: row.destroyed_by_user_id ? Number(row.destroyed_by_user_id) : null,
+    destroyedByUsername: row.destroyed_by_username || null,
+    destroyedAt: row.destroyed_at || null, destroyedReason: row.destroyed_reason || null,
   };
 }
 
 async function codeRows(db, where = '', params = [], pageClause = '') {
-  return (await db.prepare(`SELECT c.*,
+  return (await db.prepare(`SELECT c.*, destroyed_user.username AS destroyed_by_username,
     CASE c.type WHEN 'plan' THEN p.name WHEN 'upgrade' THEN u.name WHEN 'traffic' THEN t.name
     END AS product_name
     FROM redemption_codes c
     LEFT JOIN plans p ON c.type='plan' AND p.id=c.product_id
     LEFT JOIN plan_upgrades u ON c.type='upgrade' AND u.id=c.product_id
     LEFT JOIN traffic_packages t ON c.type='traffic' AND t.id=c.product_id
+    LEFT JOIN users destroyed_user ON destroyed_user.id=c.destroyed_by_user_id
     ${where} ORDER BY c.id DESC ${pageClause}`).all(...params)).map(publicCode);
 }
 
@@ -93,14 +97,16 @@ async function createCodes(db, user, body) {
 }
 
 async function redeem(db, billing, user, value) {
-  const hash = digestCode(value); const now = new Date(); let orderId; let codeId; let acquiredPlanId = null;
+  const hash = digestCode(value); const now = new Date(); let orderId; let codeId; let acquiredPlanId = null; let collision = null;
   await db.transaction(async transaction => {
     const code = await transaction.prepare('SELECT * FROM redemption_codes WHERE code_hash = ? FOR UPDATE').get(hash);
-    if (!code || code.status !== 'active') throw httpError('兑换码不存在或已停用', 404);
+    if (!code) throw httpError('兑换码不存在或已停用', 404);
+    if (code.status === 'destroyed') throw httpError('兑换码已撞车销毁', 409);
+    if (code.status !== 'active') throw httpError('兑换码不存在或已停用', 404);
     if (code.starts_at && now < new Date(code.starts_at)) throw httpError('兑换码尚未生效', 409);
     if (code.expires_at && now >= new Date(code.expires_at)) throw httpError('兑换码已过期', 409);
     if (code.used_count >= code.max_uses) throw httpError('兑换码已用完', 409);
-    if (await transaction.prepare('SELECT 1 FROM redemption_uses WHERE code_id = ? AND user_id = ?').get(code.id, user.id)) throw httpError('当前账号已使用过此兑换码', 409);
+    const alreadyUsed = await transaction.prepare('SELECT 1 FROM redemption_uses WHERE code_id = ? AND user_id = ?').get(code.id, user.id);
     const item = await product(transaction, code.type, code.product_id);
     let subscriptionId = (await billing.activeSubscription(user.id))?.id || null;
     if (code.type === 'plan') {
@@ -113,10 +119,20 @@ async function redeem(db, billing, user, value) {
       }
       const mode = billingInternals.purchaseMode(item);
       const firstAcquisition = await billingInternals.checkPlanAcquisition(transaction, user.id, item.id);
-      if (mode === 'once' && !firstAcquisition) throw httpError('该套餐每位客户只能兑换一次', 409);
-      acquiredPlanId = item.id;
       const owned = await billingInternals.livePlanSubscription(transaction, user.id, item.id, { forUpdate: true });
-      if (owned && mode === 'once') throw httpError('该套餐每位客户只能兑换一次', 409);
+      if (mode === 'once' && (!firstAcquisition || owned)) {
+        const message = '该套餐每位客户只能兑换一次';
+        if (!billingInternals.destroyCollisionCode(item)) throw httpError(message, 409);
+        await transaction.prepare(`UPDATE redemption_codes
+          SET status='destroyed', destroyed_by_user_id=?, destroyed_at=CURRENT_TIMESTAMP,
+            destroyed_reason='plan_once_collision', updated_at=CURRENT_TIMESTAMP
+          WHERE id=?`).run(user.id, code.id);
+        collision = { collision: true, codeId: Number(code.id), error: `${message}，本兑换码已撞车销毁` };
+        codeId = Number(code.id);
+        return;
+      }
+      if (alreadyUsed) throw httpError('当前账号已使用过此兑换码', 409);
+      acquiredPlanId = item.id;
       if (owned && mode === 'stack') billingInternals.assertRenewalAllowed(item, owned, now);
       if (owned && mode === 'stack') {
         const end = billingInternals.addDays(billingInternals.stackBaseDate(owned, now), item.duration_days * code.amount);
@@ -130,6 +146,7 @@ async function redeem(db, billing, user, value) {
           VALUES (?, ?, 'active', ?, ?, ?, ?)`).run(user.id, item.id, start.toISOString(), end.toISOString(), item.upstream_id, item.upstream_package_id)).lastInsertRowid);
       }
     } else {
+      if (alreadyUsed) throw httpError('当前账号已使用过此兑换码', 409);
       if (!subscriptionId) throw httpError('请先开通有效套餐', 409);
       if (code.type === 'upgrade') {
         await transaction.prepare(`INSERT INTO subscription_upgrades (subscription_id, upgrade_id, amount) VALUES (?, ?, ?)
@@ -151,6 +168,7 @@ async function redeem(db, billing, user, value) {
     if (acquiredPlanId) await billingInternals.recordPlanAcquisition(transaction, user.id, acquiredPlanId);
     codeId = code.id;
   });
+  if (collision) return collision;
   await billing.updateLegacySiteLimit(user.id);
   await billing.enforceUser(user.id, { syncTraffic: false });
   return { orderId, codeId, billing: await billing.snapshot(user.id) };
@@ -160,6 +178,10 @@ export async function handleRedemptionApi({ req, url, user, db, billing, readBod
   if (user.role === 'user') {
     if (url.pathname === '/api/billing/redeem' && req.method === 'POST') {
       const result = await redeem(db, billing, user, (await readBody(req)).code);
+      if (result.collision) {
+        return { status: 409, data: { error: result.error, codeDestroyed: true },
+          action: 'redemption.collision-destroy', resourceId: result.codeId };
+      }
       return { status: 200, data: result, action: 'redemption.redeem', resourceId: result.codeId };
     }
     if (url.pathname === '/api/billing/redemptions' && req.method === 'GET') {
@@ -183,10 +205,13 @@ export async function handleRedemptionApi({ req, url, user, db, billing, readBod
       if (q) { clauses.push('(c.label LIKE ? OR c.code_suffix LIKE ?)'); const like = searchLike(q); params.push(like, like); }
       if (status === 'active') { clauses.push("c.status='active' AND c.used_count < c.max_uses AND (c.starts_at IS NULL OR c.starts_at<=?) AND (c.expires_at IS NULL OR c.expires_at>?)"); params.push(now, now); }
       else if (status === 'disabled') { clauses.push("c.status='disabled'"); }
+      else if (status === 'destroyed') { clauses.push("c.status='destroyed'"); }
       if (type) { clauses.push('c.type=?'); params.push(type); }
       const where = `WHERE ${clauses.join(' AND ')}`;
       const total = (await db.prepare(`SELECT COUNT(*) AS count FROM redemption_codes c ${where}`).get(...params)).count;
-      const rows = await db.prepare(`SELECT c.* FROM redemption_codes c ${where} ORDER BY c.id DESC LIMIT ? OFFSET ?`).all(...params, pageSize, offset);
+      const rows = await db.prepare(`SELECT c.*, destroyed_user.username AS destroyed_by_username
+        FROM redemption_codes c LEFT JOIN users destroyed_user ON destroyed_user.id=c.destroyed_by_user_id
+        ${where} ORDER BY c.id DESC LIMIT ? OFFSET ?`).all(...params, pageSize, offset);
       const codes = await Promise.all(rows.map(async row => ({ ...publicCode(row), productName: (await product(db, row.type, row.product_id, { enabled: false })).name })));
       return { status: 200, data: paged(codes, total, page, pageSize, 'codes') };
     }
@@ -196,15 +221,22 @@ export async function handleRedemptionApi({ req, url, user, db, billing, readBod
     }
     const uses = path.match(/^\/(\d+)\/uses$/);
     if (uses && req.method === 'GET') {
-      const code = await db.prepare('SELECT id FROM redemption_codes WHERE id=?').get(Number(uses[1])); if (!code) throw httpError('兑换码不存在', 404);
+      const code = await db.prepare(`SELECT c.*, u.username AS destroyed_by_username FROM redemption_codes c
+        LEFT JOIN users u ON u.id=c.destroyed_by_user_id WHERE c.id=?`).get(Number(uses[1]));
+      if (!code) throw httpError('兑换码不存在', 404);
       const rows = await db.prepare(`SELECT ru.id, ru.order_id, ru.redeemed_at, u.id AS user_id, u.username
         FROM redemption_uses ru JOIN users u ON u.id=ru.user_id WHERE ru.code_id=? ORDER BY ru.id DESC`).all(code.id);
-      return { status: 200, data: { uses: rows.map(row => ({ id: row.id, userId: row.user_id, username: row.username, orderId: row.order_id, redeemedAt: row.redeemed_at })) } };
+      const events = rows.map(row => ({ id: row.id, kind: 'redeemed', userId: row.user_id, username: row.username, orderId: row.order_id, redeemedAt: row.redeemed_at }));
+      if (code.destroyed_at) events.push({ id: `collision-${code.id}`, kind: 'collision', userId: code.destroyed_by_user_id,
+        username: code.destroyed_by_username, orderId: null, redeemedAt: code.destroyed_at, reason: code.destroyed_reason });
+      events.sort((left, right) => new Date(right.redeemedAt) - new Date(left.redeemedAt));
+      return { status: 200, data: { uses: events } };
     }
     const match = path.match(/^\/(\d+)$/);
     if (match) {
       const row = await db.prepare('SELECT * FROM redemption_codes WHERE id=?').get(Number(match[1])); if (!row) throw httpError('兑换码不存在', 404);
       if (req.method === 'PUT') {
+        if (row.status === 'destroyed') throw httpError('撞车销毁的兑换码不能恢复或修改', 409);
         const body = await readBody(req); const status = body.status ?? row.status;
         if (!['active', 'disabled'].includes(status)) throw httpError('兑换码状态无效');
         const maxUses = body.maxUses === undefined ? row.max_uses : int(body.maxUses, '可用次数', { min: row.used_count || 1, max: 100000 });
@@ -216,6 +248,7 @@ export async function handleRedemptionApi({ req, url, user, db, billing, readBod
         return { status: 200, data: { code: (await codeRows(db, 'WHERE c.id=?', [row.id]))[0] }, action: 'redemption.update', resourceId: row.id };
       }
       if (req.method === 'DELETE') {
+        if (row.status === 'destroyed') throw httpError('撞车销毁的兑换码不能恢复或修改', 409);
         await db.prepare("UPDATE redemption_codes SET status='disabled', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(row.id);
         return { status: 200, data: { ok: true }, action: 'redemption.disable', resourceId: row.id };
       }

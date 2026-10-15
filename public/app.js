@@ -1160,7 +1160,8 @@ function renderAdminBilling() {
   $('#adminUsageOverLimit').textContent = totals?.overLimitCustomers ?? data.usage.filter(item => item.billing?.overLimit).length;
   $('#adminPlanTable').replaceChildren(...data.plans.map(plan => {
     const tr = document.createElement('tr'); tr.innerHTML = `<td><strong></strong><small></small></td><td><strong></strong><small></small></td><td></td><td></td><td></td><td></td><td>${resourceStatus(plan)}</td><td class="right"><span class="row-actions"><button data-edit-plan="${plan.id}">配置</button>${catalogToggleButton('plan', plan)}<button class="danger" data-delete-plan="${plan.id}">删除</button></span></td>`;
-    $('td:first-child strong', tr).textContent = plan.name; $('td:first-child small', tr).textContent = `${plan.code} · ${plan.purchaseMode === 'once' ? '仅一次' : '可叠加'} · ${plan.renewalMode === 'off' ? '禁续费' : plan.renewalMode === 'window' ? `到期前${plan.renewalWindowDays}天续` : '可续费'}`; $('td:nth-child(2) strong', tr).textContent = plan.upstreamName || '未绑定'; $('td:nth-child(2) small', tr).textContent = plan.upstreamPackageName || plan.upstreamPackageId || '-'; tr.children[2].textContent = formatMoney(plan.priceCents); tr.children[3].textContent = formatLimit(plan.domainLimit); tr.children[4].textContent = formatBytes(plan.trafficLimitBytes); tr.children[5].textContent = formatLimit(plan.portLimit); return tr;
+    const collisionPolicy = plan.purchaseMode === 'once' ? (plan.destroyCollisionCode ? '撞车销码' : '撞车保留') : '可叠加';
+    $('td:first-child strong', tr).textContent = plan.name; $('td:first-child small', tr).textContent = `${plan.code} · ${plan.purchaseMode === 'once' ? `仅一次 / ${collisionPolicy}` : collisionPolicy} · ${plan.renewalMode === 'off' ? '禁续费' : plan.renewalMode === 'window' ? `到期前${plan.renewalWindowDays}天续` : '可续费'}`; $('td:nth-child(2) strong', tr).textContent = plan.upstreamName || '未绑定'; $('td:nth-child(2) small', tr).textContent = plan.upstreamPackageName || plan.upstreamPackageId || '-'; tr.children[2].textContent = formatMoney(plan.priceCents); tr.children[3].textContent = formatLimit(plan.domainLimit); tr.children[4].textContent = formatBytes(plan.trafficLimitBytes); tr.children[5].textContent = formatLimit(plan.portLimit); return tr;
   }));
   $('#adminGroupTable').replaceChildren(...data.groups.map(group => {
     const tr = document.createElement('tr'); tr.innerHTML = `<td><strong></strong></td><td></td><td></td><td>${resourceStatus(group)}</td><td class="right"><span class="row-actions"><button data-edit-group="${group.id}">配置</button>${catalogToggleButton('group', group)}</span></td>`;
@@ -1175,8 +1176,9 @@ function renderAdminBilling() {
     $('strong', tr).textContent = item.name; $('small', tr).textContent = item.description || ''; tr.children[1].textContent = formatBytes(item.traffic_bytes); tr.children[2].textContent = formatMoney(item.price_cents); tr.children[3].textContent = `${item.duration_days} 天`; return tr;
   }));
   $('#adminRedemptionTable').replaceChildren(...data.codes.map(code => {
-    const tr = document.createElement('tr'); tr.innerHTML = `<td><strong></strong><small></small></td><td></td><td></td><td></td><td></td><td>${resourceStatus(code)}</td><td class="right"><span class="row-actions"><button data-code-uses="${code.id}">记录</button><button class="danger" data-disable-code="${code.id}">停用</button></span></td>`;
-    $('strong', tr).textContent = `****-${code.suffix}`; $('small', tr).textContent = code.label || `兑换码 #${code.id}`; tr.children[1].textContent = code.productName || '历史商品'; tr.children[2].textContent = `x${code.amount}`; tr.children[3].textContent = `${code.usedCount} / ${code.maxUses}`; tr.children[4].textContent = code.expiresAt ? formatDate(code.expiresAt) : '长期有效'; return tr;
+    const canDisable = ['active', 'scheduled'].includes(code.status);
+    const tr = document.createElement('tr'); tr.innerHTML = `<td><strong></strong><small></small></td><td></td><td></td><td></td><td></td><td>${resourceStatus(code)}</td><td class="right"><span class="row-actions"><button data-code-uses="${code.id}">记录</button>${canDisable ? `<button class="danger" data-disable-code="${code.id}">停用</button>` : ''}</span></td>`;
+    $('strong', tr).textContent = `****-${code.suffix}`; $('small', tr).textContent = code.status === 'destroyed' ? `${code.label || `兑换码 #${code.id}`} · ${code.destroyedByUsername || '未知客户'}撞车` : (code.label || `兑换码 #${code.id}`); tr.children[1].textContent = code.productName || '历史商品'; tr.children[2].textContent = `x${code.amount}`; tr.children[3].textContent = `${code.usedCount} / ${code.maxUses}`; tr.children[4].textContent = code.destroyedAt ? formatDate(code.destroyedAt) : (code.expiresAt ? formatDate(code.expiresAt) : '长期有效'); return tr;
   }));
   $('#adminWalletTable').replaceChildren(...data.wallets.map(wallet => {
     const tr = document.createElement('tr'); tr.innerHTML = `<td><strong></strong><small></small></td><td></td><td><strong></strong></td><td class="right"><button data-adjust-wallet="${wallet.userId}">调整余额</button></td>`;
@@ -1331,9 +1333,16 @@ function openPlanDialog(plan = null) {
     }
   }
   fillSelect(form.elements.upstreamMapping, mappings, item => item.label);
-  form.elements.id.value = plan?.id || ''; form.elements.code.value = plan?.code || ''; form.elements.name.value = plan?.name || ''; form.elements.price.value = plan ? plan.priceCents / 100 : ''; form.elements.durationDays.value = plan?.durationDays || 30; form.elements.domainLimit.value = plan?.domainLimit ?? ''; form.elements.trafficGiB.value = plan?.trafficLimitBytes === null ? '' : Number(plan?.trafficLimitBytes || 0) / GIB; form.elements.portLimit.value = plan?.portLimit ?? ''; form.elements.groupId.value = plan?.groupId ?? ''; form.elements.description.value = plan?.description || ''; form.elements.enabled.checked = plan ? plan.enabled : true; form.elements.purchaseMode.value = plan?.purchaseMode === 'once' ? 'once' : 'stack'; form.elements.maxPurchaseQty.value = plan?.maxPurchaseQty || 1; form.elements.renewalMode.value = plan?.renewalMode === 'off' || plan?.renewalMode === 'window' ? plan.renewalMode : 'anytime'; form.elements.renewalWindowDays.value = plan?.renewalWindowDays || 7;
+  form.elements.id.value = plan?.id || ''; form.elements.code.value = plan?.code || ''; form.elements.name.value = plan?.name || ''; form.elements.price.value = plan ? plan.priceCents / 100 : ''; form.elements.durationDays.value = plan?.durationDays || 30; form.elements.domainLimit.value = plan?.domainLimit ?? ''; form.elements.trafficGiB.value = plan?.trafficLimitBytes === null ? '' : Number(plan?.trafficLimitBytes || 0) / GIB; form.elements.portLimit.value = plan?.portLimit ?? ''; form.elements.groupId.value = plan?.groupId ?? ''; form.elements.description.value = plan?.description || ''; form.elements.enabled.checked = plan ? plan.enabled : true; form.elements.purchaseMode.value = plan?.purchaseMode === 'once' ? 'once' : 'stack'; form.elements.maxPurchaseQty.value = plan?.maxPurchaseQty || 1; form.elements.destroyCollisionCode.checked = plan ? plan.destroyCollisionCode !== false : true; form.elements.renewalMode.value = plan?.renewalMode === 'off' || plan?.renewalMode === 'window' ? plan.renewalMode : 'anytime'; form.elements.renewalWindowDays.value = plan?.renewalWindowDays || 7;
   form.elements.upstreamMapping.value = plan?.upstreamId && plan?.upstreamPackageId ? `${plan.upstreamId}:${plan.upstreamPackageId}` : '';
+  updatePlanCollisionControl();
   $('#planDialogTitle').textContent = plan ? `配置 ${plan.name}` : '新建套餐'; $('#planDialog').showModal();
+}
+
+function updatePlanCollisionControl() {
+  const form = $('#planForm'); const enabled = form.elements.purchaseMode.value === 'once';
+  form.elements.destroyCollisionCode.disabled = !enabled;
+  $('#destroyCollisionCodeRow').classList.toggle('disabled', !enabled);
 }
 
 function openCatalogDialog(type, item = null) {
@@ -3630,6 +3639,7 @@ $('#adminBillingTabs').addEventListener('click', event => {
   setAdminBillingTab(button.dataset.billingTab);
 });
 $('#newPlanButton').addEventListener('click', () => openPlanDialog());
+$('#planForm').elements.purchaseMode.addEventListener('change', updatePlanCollisionControl);
 $('#newGroupButton').addEventListener('click', () => openCatalogDialog('group'));
 $('#newUpgradeButton').addEventListener('click', () => openCatalogDialog('upgrade'));
 $('#newTrafficButton').addEventListener('click', () => openCatalogDialog('traffic'));
@@ -3658,7 +3668,7 @@ $('#copyGeneratedCodes').addEventListener('click', async () => { try { await nav
 $('#planForm').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; const id = form.elements.id.value; const nullableInt = value => value === '' ? null : Number(value);
   const mapping = form.elements.upstreamMapping.value; const separator = mapping.indexOf(':');
-  const body = { code: form.elements.code.value.trim(), name: form.elements.name.value.trim(), description: form.elements.description.value.trim(), priceCents: Math.round(Number(form.elements.price.value) * 100), durationDays: Number(form.elements.durationDays.value), domainLimit: nullableInt(form.elements.domainLimit.value), trafficLimitBytes: form.elements.trafficGiB.value === '' ? null : Math.round(Number(form.elements.trafficGiB.value) * GIB), portLimit: nullableInt(form.elements.portLimit.value), groupId: form.elements.groupId.value === '' ? null : Number(form.elements.groupId.value), upstreamId: Number(mapping.slice(0, separator)), upstreamPackageId: mapping.slice(separator + 1), enabled: form.elements.enabled.checked, purchaseMode: form.elements.purchaseMode.value, maxPurchaseQty: Number(form.elements.maxPurchaseQty.value || 1), renewalMode: form.elements.renewalMode.value, renewalWindowDays: Number(form.elements.renewalWindowDays.value || 7) };
+  const body = { code: form.elements.code.value.trim(), name: form.elements.name.value.trim(), description: form.elements.description.value.trim(), priceCents: Math.round(Number(form.elements.price.value) * 100), durationDays: Number(form.elements.durationDays.value), domainLimit: nullableInt(form.elements.domainLimit.value), trafficLimitBytes: form.elements.trafficGiB.value === '' ? null : Math.round(Number(form.elements.trafficGiB.value) * GIB), portLimit: nullableInt(form.elements.portLimit.value), groupId: form.elements.groupId.value === '' ? null : Number(form.elements.groupId.value), upstreamId: Number(mapping.slice(0, separator)), upstreamPackageId: mapping.slice(separator + 1), enabled: form.elements.enabled.checked, purchaseMode: form.elements.purchaseMode.value, maxPurchaseQty: Number(form.elements.maxPurchaseQty.value || 1), destroyCollisionCode: form.elements.destroyCollisionCode.checked, renewalMode: form.elements.renewalMode.value, renewalWindowDays: Number(form.elements.renewalWindowDays.value || 7) };
   try { await api(`/api/admin/billing/plans${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }); $('#planDialog').close(); await loadBillingAdmin(); toast('套餐已保存'); } catch (error) { handleError(error); }
 });
 
@@ -3716,7 +3726,7 @@ $('#billing-admin').addEventListener('click', async event => {
       await loadBillingAdmin();
       return toast(message);
     }
-    if (codeUses) { const result = await api(`/api/admin/billing/redemption-codes/${codeUses.dataset.codeUses}/uses`); return showRecords('权益兑换记录', result.uses.map(item => ({ title: `${item.username} · 订单 #${item.orderId}`, detail: formatDate(item.redeemedAt) })), '该兑换码暂无使用记录'); }
+    if (codeUses) { const result = await api(`/api/admin/billing/redemption-codes/${codeUses.dataset.codeUses}/uses`); return showRecords('权益兑换记录', result.uses.map(item => ({ title: item.kind === 'collision' ? `${item.username || '未知客户'} · 撞车销毁` : `${item.username} · 订单 #${item.orderId}`, detail: formatDate(item.redeemedAt) })), '该兑换码暂无使用记录'); }
     if (rechargeUses) { const result = await api(`/api/admin/billing/recharge-codes/${rechargeUses.dataset.rechargeUses}/uses`); return showRecords('余额充值记录', result.uses.map(item => ({ title: `${item.username} · ${formatMoney(item.amountCents)}`, detail: formatDate(item.redeemedAt) })), '该充值码暂无使用记录'); }
   } catch (error) { handleError(error); }
 });

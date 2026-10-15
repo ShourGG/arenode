@@ -188,6 +188,9 @@ ALTER TABLE plans ADD CONSTRAINT plans_purchase_mode_check CHECK (purchase_mode 
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_purchase_qty INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_max_purchase_qty_check;
 ALTER TABLE plans ADD CONSTRAINT plans_max_purchase_qty_check CHECK (max_purchase_qty >= 1);
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS destroy_collision_code INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_destroy_collision_code_check;
+ALTER TABLE plans ADD CONSTRAINT plans_destroy_collision_code_check CHECK (destroy_collision_code IN (0, 1));
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS renewal_mode TEXT NOT NULL DEFAULT 'anytime';
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_renewal_mode_check;
 ALTER TABLE plans ADD CONSTRAINT plans_renewal_mode_check CHECK (renewal_mode IN ('off', 'anytime', 'window'));
@@ -447,13 +450,19 @@ CREATE TABLE IF NOT EXISTS redemption_codes (
   amount INTEGER NOT NULL DEFAULT 1 CHECK (amount > 0),
   max_uses INTEGER NOT NULL DEFAULT 1 CHECK (max_uses > 0),
   used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+  status TEXT NOT NULL DEFAULT 'active' CONSTRAINT redemption_codes_status_check CHECK (status IN ('active', 'disabled', 'destroyed')),
   starts_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
   created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_at TIMESTAMPTZ;
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_reason TEXT;
+ALTER TABLE redemption_codes DROP CONSTRAINT IF EXISTS redemption_codes_status_check;
+ALTER TABLE redemption_codes ADD CONSTRAINT redemption_codes_status_check CHECK (status IN ('active', 'disabled', 'destroyed'));
+
 CREATE TABLE IF NOT EXISTS redemption_uses (
   id BIGSERIAL PRIMARY KEY,
   code_id BIGINT NOT NULL REFERENCES redemption_codes(id) ON DELETE RESTRICT,

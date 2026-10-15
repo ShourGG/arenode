@@ -59,6 +59,7 @@ export function resourceLifecycle(resource = {}, kind = '', now = new Date()) {
   if (resource._shared) return { state: 'readonly', tone: 'pending', label: '系统规则，仅可查看' };
   if (kind === 'certs') return certificateLifecycle(resource, now);
   const status = lifecycleState(resource);
+  if (status === 'destroyed') return { state: 'destroyed', tone: 'off danger-text', label: '撞车销毁' };
   if (status === 'exhausted' || (Number.isFinite(Number(resource.maxUses)) && Number(resource.usedCount) >= Number(resource.maxUses))) {
     return { state: 'exhausted', tone: 'off', label: '已用完' };
   }

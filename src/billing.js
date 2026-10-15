@@ -40,6 +40,10 @@ function maxPurchaseQty(plan) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function destroyCollisionCode(plan) {
+  return ![0, false, '0', 'false', 'off'].includes(plan?.destroy_collision_code);
+}
+
 function renewalMode(plan) {
   return plan?.renewal_mode === 'off' || plan?.renewal_mode === 'window' ? plan.renewal_mode : 'anytime';
 }
@@ -94,7 +98,7 @@ function planPublic(row) {
     id: row.id, groupId: row.group_id, code: row.code, name: row.name, description: row.description,
     priceCents: row.price_cents, durationDays: row.duration_days, domainLimit: row.domain_limit,
     trafficLimitBytes: row.traffic_limit_bytes, portLimit: row.port_limit, enabled: Boolean(row.enabled), sort: row.sort,
-    purchaseMode: purchaseMode(row), maxPurchaseQty: maxPurchaseQty(row),
+    purchaseMode: purchaseMode(row), maxPurchaseQty: maxPurchaseQty(row), destroyCollisionCode: destroyCollisionCode(row),
     renewalMode: renewalMode(row), renewalWindowDays: renewalWindowDays(row),
     upstreamId: row.upstream_id ? Number(row.upstream_id) : null, upstreamPackageId: row.upstream_package_id || null,
   };
@@ -587,4 +591,4 @@ export class BillingService {
   }
 }
 
-export const billingInternals = { DEFAULT_PLANS, periodKey, monthRange, domainCount, planPublic, purchaseMode, maxPurchaseQty, renewalMode, renewalWindowDays, assertRenewalAllowed, stackBaseDate, livePlanSubscription, checkPlanAcquisition, recordPlanAcquisition, addDays };
+export const billingInternals = { DEFAULT_PLANS, periodKey, monthRange, domainCount, planPublic, purchaseMode, maxPurchaseQty, destroyCollisionCode, renewalMode, renewalWindowDays, assertRenewalAllowed, stackBaseDate, livePlanSubscription, checkPlanAcquisition, recordPlanAcquisition, addDays };
