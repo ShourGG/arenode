@@ -1,10 +1,10 @@
-const SITE_PROFILE_LABELS = { web: '普通网站', openai: 'OpenAI API', anthropic: 'Anthropic API', gemini: 'Gemini API', azure_openai: 'Azure OpenAI API', cohere: 'Cohere API', china_ai: '国内 AI API', mixed_ai: 'AI API 全协议' };
 import { resourceEnabled, resourceLifecycle, siteLifecycle } from './resource-status.js?v=arenode';
 import { collectMonitorPoints, formatMonitorBandwidth, formatMonitorChartLabel, formatMonitorTime, normalizeMonitorItems } from './monitor-utils.js';
 
 const DEFAULT_SSL_CIPHERS = 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+const SITE_PROFILE_LABELS = { web: '普通网站', openai: 'OpenAI API', anthropic: 'Anthropic API', gemini: 'Gemini API', azure_openai: 'Azure OpenAI API', cohere: 'Cohere API', china_ai: '国内 AI API', mixed_ai: 'AI API 全协议' };
 
-const state = { me: null, authConfig: null, runtimeSettings: null, capabilities: { wafRules: true, attackLogs: true }, serviceStatus: null, wallet: { balanceCents: 0, availableBalanceCents: 0, totalRechargeCents: 0, totalSpentCents: 0, transactions: [] }, sites: [], siteGroups: [], currentSite: null, currentSiteConfig: null, siteCertificates: [], siteAcls: [], siteCcRules: [], siteCnameChecks: new Map(), streams: [], streamItems: [], streamGroups: [], currentStream: null, userConfigs: [], configType: 'site', logKind: 'op', localLogs: [], auditLogs: [], monitorItems: [], monitorPoints: [], monitorContext: 'site', monitorMode: 'basic', monitorRequestId: 0, jobItems: [], users: [], adminSites: [], adminStreams: [], adminStreamCustomers: [], currentAdminStream: null, upstreams: [], resources: [], editingResource: null, billingPlans: [], billingOrders: [], billingUpgrades: [], billingTraffic: [], redemptions: [], billingAdmin: {}, adminOverview: null, administrators: [], registrationInvites: [], mfa: null, accountClosure: null, apiKeys: [], currentOrder: null, planChangeQuote: null, planChangeRequest: null, trafficPoints: [], streamCount: 0, jobCount: null, resourceKind: 'site-groups', editResourceKind: 'site-groups', resourceFilter: 'all', dataTab: 'streams', streamKind: 'streams', billingTarget: 'current', accountSection: 'profile', currentSiteSection: 'siteBasic', currentView: 'overview', selectedSites: new Set(), selectedResources: new Set(), selectedStreams: new Set(), ccMatchers: [], ccFilters: [], dnsApis: [], dnsAuthKeys: [], pageInfo: {} };
+const state = { me: null, authConfig: null, runtimeSettings: null, capabilities: { wafRules: true, attackLogs: true }, serviceStatus: null, wallet: { balanceCents: 0, availableBalanceCents: 0, totalRechargeCents: 0, totalSpentCents: 0, transactions: [] }, sites: [], siteGroups: [], currentSite: null, currentSiteConfig: null, siteCertificates: [], siteAcls: [], siteCcRules: [], siteCnameChecks: new Map(), streams: [], streamItems: [], streamGroups: [], currentStream: null, userConfigs: [], configType: 'site', logKind: 'op', localLogs: [], auditLogs: [], monitorItems: [], monitorPoints: [], monitorContext: 'site', monitorMode: 'basic', monitorRequestId: 0, jobItems: [], users: [], adminSites: [], adminStreams: [], adminStreamCustomers: [], currentAdminStream: null, upstreams: [], resources: [], editingResource: null, billingPlans: [], billingOrders: [], billingUpgrades: [], billingTraffic: [], redemptions: [], billingAdmin: {}, adminOverview: null, administrators: [], registrationInvites: [], mfa: null, accountClosure: null, apiKeys: [], currentOrder: null, planChangeQuote: null, planChangeRequest: null, recoveryStatus: null, recoveryClaim: null, recoveryAdminSites: [], trafficPoints: [], streamCount: 0, jobCount: null, resourceKind: 'site-groups', editResourceKind: 'site-groups', resourceFilter: 'all', dataTab: 'streams', streamKind: 'streams', billingTarget: 'current', accountSection: 'profile', currentSiteSection: 'siteBasic', currentView: 'overview', selectedSites: new Set(), selectedResources: new Set(), selectedStreams: new Set(), ccMatchers: [], ccFilters: [], dnsApis: [], dnsAuthKeys: [], pageInfo: {} };
 let serviceStatusTimer = null;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -111,6 +111,23 @@ function toast(message, isError = false) {
   element.className = `toast show${isError ? ' error' : ''}`;
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => { element.className = 'toast'; }, 2800);
+}
+
+async function copyText(value, successMessage = '内容已复制') {
+  const text = String(value ?? '');
+  if (!text) throw new Error('没有可复制的内容');
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API 不可用');
+    await navigator.clipboard.writeText(text);
+  } catch (primaryError) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text; textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed'; textarea.style.opacity = '0';
+    document.body.append(textarea); textarea.select();
+    const copied = document.execCommand('copy'); textarea.remove();
+    if (!copied) throw primaryError;
+  }
+  toast(successMessage);
 }
 
 async function loadViewState(name, task) {
@@ -668,7 +685,7 @@ function showView(name, activeButton = null) {
   $$('#nav [data-view]').forEach(button => button.classList.toggle('active', button === selected));
   $$('.nav-cluster').forEach(cluster => cluster.classList.toggle('active-parent', Boolean(selected && cluster.contains(selected))));
   if (selected) selected.closest('.nav-cluster')?.classList.add('open');
-  const names = { overview: '控制台', 'tenant-dashboard': '数据大屏', sites: '网站列表', security: '安全策略', data: '转发与数据', billing: '套餐中心', 'admin-overview': '管理控制台', users: '客户管理', 'admin-sites': '站点管理', 'admin-streams': '四层转发', 'billing-admin': '套餐与交易', upstreams: '上游管理', administrators: '管理员', invitations: '邀请码', audit: '审计日志', 'system-health': '系统状态', 'runtime-settings': '运行参数', account: '账户设置' };
+  const names = { overview: '控制台', 'tenant-dashboard': '数据大屏', sites: '网站列表', security: '安全策略', data: '转发与数据', billing: '套餐中心', 'admin-overview': '管理控制台', users: '客户管理', 'admin-sites': '站点管理', 'admin-streams': '四层转发', 'recovery-admin': '灾后恢复', 'billing-admin': '套餐与交易', upstreams: '上游管理', administrators: '管理员', invitations: '邀请码', audit: '审计日志', 'system-health': '系统状态', 'runtime-settings': '运行参数', account: '账户设置' };
   const title = selected?.dataset.title || names[name];
   $('#pageTitle').textContent = title;
   $('#breadcrumb').textContent = `${state.me?.user.role === 'admin' ? '运营后台' : '用户中心'} / ${title}`;
@@ -679,7 +696,7 @@ function showView(name, activeButton = null) {
     users: loadUsers, audit: loadAudit, upstreams: loadUpstreams, 'system-health': loadSystemHealth, 'runtime-settings': loadRuntimeSettings,
     administrators: loadAdministrators, invitations: loadInvitations,
     security: loadResources, data: loadDataPane,
-    billing: loadBilling, 'billing-admin': loadBillingAdmin, 'admin-sites': loadAdminSites, 'admin-streams': loadAdminStreams,
+    billing: loadBilling, 'billing-admin': loadBillingAdmin, 'admin-sites': loadAdminSites, 'admin-streams': loadAdminStreams, 'recovery-admin': loadRecoveryAdmin,
   };
   if (loaders[name]) loadViewState(name, loaders[name]);
   if (['overview', 'tenant-dashboard'].includes(name)) requestAnimationFrame(drawTrafficCharts);
@@ -1138,9 +1155,31 @@ function openPlanChangeDialog(subscriptionId) {
   $('#planChangeDialog').showModal(); refreshPlanChangeQuote().catch(handleError);
 }
 
+function renderRecoveryStatus() {
+  const status = state.recoveryStatus;
+  const badge = $('#recoveryActivationStatus'); const hint = $('#recoveryClaimHint');
+  if (!badge || !hint) return;
+  const active = Boolean(status?.activated && ['active', 'suspended'].includes(status.activation?.status));
+  badge.textContent = active ? `已激活 · ${status.claimedDomains || 0}/15 个域名` : status?.activated ? '已到期' : '尚未激活';
+  badge.className = `badge ${active ? 'active' : 'off'}`;
+  hint.textContent = active
+    ? `恢复套餐到期：${formatDate(status.activation.endsAt)}。已认领 ${status.claimedDomains || 0}/15 个域名；同一账号不能再次激活。`
+    : '一份恢复套餐最多 15 个域名、15 个端口，流量不限；同一账号只能激活一次。';
+}
+
+async function loadRecoveryStatus() {
+  try {
+    state.recoveryStatus = await api('/api/recovery/status');
+  } catch {
+    state.recoveryStatus = null;
+  }
+  renderRecoveryStatus();
+}
+
 async function loadBilling() {
   const [me, plans, orders, upgrades, traffic, redemptions, wallet] = await Promise.all([api('/api/me'), api('/api/cdnfly/v1/packages'), api('/api/cdnfly/v1/orders'), api('/api/cdnfly/v1/package-ups'), api('/api/cdnfly/v1/traffic-packages'), api('/api/billing/redemptions'), api('/api/billing/wallet')]);
   state.me = me; state.billingPlans = extractItems(plans.data); state.billingOrders = extractItems(orders.data); state.billingUpgrades = extractItems(upgrades.data); state.billingTraffic = extractItems(traffic.data); state.redemptions = redemptions.redemptions; state.wallet = wallet; renderTenantBilling(); renderSites(); renderAccountProfile();
+  await loadRecoveryStatus();
   setTenantBillingPane(state.billingTarget);
 }
 
@@ -1315,6 +1354,21 @@ async function loadBillingAdmin() {
   state.billingAdmin = { plans: plans.plans, groups: groups.groups, upgrades: upgrades.upgrades, trafficPackages: traffic.trafficPackages, codes: codes.codes, subscriptions: subscriptions.subscriptions, orders: orders.orders, usage: usage.users, users: users.customers, wallets: wallets.wallets, rechargeCodes: rechargeCodes.codes, rechargeBatches: rechargeBatches.batches, finance,
     pagination: { codes: codes.pagination, subscriptions: subscriptions.pagination, orders: orders.pagination, usage: usage.pagination, wallets: wallets.pagination, rechargeCodes: rechargeCodes.pagination, rechargeBatches: rechargeBatches.pagination } };
   renderAdminBilling();
+}
+
+function renderRecoveryAdmin() {
+  const rows = state.recoveryAdminSites || [];
+  $('#recoveryAdminCount').textContent = `${rows.length} 个站点`;
+  $('#recoveryAdminTable').replaceChildren(...rows.map(item => {
+    const tr = document.createElement('tr'); tr.innerHTML = '<td><strong></strong></td><td></td><td></td><td></td><td></td>';
+    $('strong', tr).textContent = item.domain; tr.children[1].innerHTML = item.status === 'claimed' ? '<span class="badge active">已认领</span>' : item.status === 'revoked' ? '<span class="badge off">已撤销</span>' : '<span class="badge pending">待认领</span>';
+    tr.children[2].textContent = item.username || '-'; tr.children[3].textContent = `#${item.upstreamSiteId}`; tr.children[4].textContent = item.claimedAt ? formatDate(item.claimedAt) : '-'; return tr;
+  }));
+  $('#recoveryAdminEmpty').classList.toggle('hidden', rows.length !== 0);
+}
+
+async function loadRecoveryAdmin() {
+  const result = await api('/api/admin/recovery/sites'); state.recoveryAdminSites = result.sites || []; renderRecoveryAdmin();
 }
 
 function fillSelect(select, rows, label, includeBlank = false) {
@@ -3574,6 +3628,60 @@ $('#resetPasswordForm').addEventListener('submit', async event => {
 $('#refreshAudit').addEventListener('click', () => loadAudit(1).catch(handleError));
 
 $('#refreshBilling').addEventListener('click', () => loadBilling().catch(handleError));
+function renderAdditionalRecoveryRecords(names = []) {
+  let container = $('#recoveryAdditionalRecords');
+  if (!container) {
+    container = document.createElement('div'); container.id = 'recoveryAdditionalRecords';
+    $('#recoveryClaimResult').append(container);
+  }
+  container.replaceChildren(...names.map(name => {
+    const row = document.createElement('div'); row.className = 'recovery-record-row';
+    const label = document.createElement('span'); label.textContent = '其他域名';
+    const code = document.createElement('code'); code.textContent = name;
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary'; button.textContent = '复制记录名';
+    button.addEventListener('click', () => copyText(name, 'TXT 记录名已复制').catch(() => toast('复制失败，请手动选择记录名', true)));
+    row.append(label, code, button); return row;
+  }));
+}
+$('#recoveryClaimForm').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; const button = $('button[type=submit]', form); button.disabled = true;
+  try {
+    const result = await api('/api/recovery/claims', { method: 'POST', body: JSON.stringify({ domain: form.elements.domain.value.trim() }) });
+    if (result.claimed) {
+      state.recoveryClaim = null; $('#recoveryClaimResult').classList.add('hidden'); $('#recoveryVerifyButton').classList.add('hidden');
+      await loadRecoveryStatus(); toast('该站点已由当前账号认领'); return;
+    }
+    state.recoveryClaim = result.claim;
+    renderAdditionalRecoveryRecords();
+    $('#recoveryRecordName').textContent = result.claim.record.name;
+    $('#recoveryRecordValue').textContent = result.claim.record.value;
+    $('#recoveryRecordExpires').textContent = formatDate(result.claim.expiresAt);
+    $('#recoveryClaimResult').classList.remove('hidden');
+    $('#recoveryVerifyButton').classList.remove('hidden');
+    toast('验证记录已生成');
+  } catch (error) { handleError(error); } finally { button.disabled = false; }
+});
+$('#recoveryVerifyButton').addEventListener('click', async event => {
+  if (!state.recoveryClaim) return;
+  const button = event.currentTarget; button.disabled = true;
+  try {
+    const result = await api(`/api/recovery/claims/${state.recoveryClaim.id}/verify`, { method: 'POST', body: '{}' });
+    state.recoveryClaim = null; $('#recoveryVerifyButton').classList.add('hidden'); $('#recoveryClaimResult').classList.add('hidden');
+    await Promise.all([loadBilling(), loadSites()]); toast(result.activated ? '认领成功，恢复套餐已激活' : '认领成功，站点已加入恢复套餐');
+  } catch (error) {
+    if (error.data?.additionalRecordNames) renderAdditionalRecoveryRecords(error.data.additionalRecordNames);
+    handleError(error);
+  } finally { button.disabled = false; }
+});
+$('#refreshRecoveryAdmin').addEventListener('click', () => loadRecoveryAdmin().catch(handleError));
+$('#recoveryImportForm').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; const button = $('button[type=submit]', form); button.disabled = true;
+  try {
+    const result = await api('/api/admin/recovery/sites/import', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+    $('#recoveryImportResult').textContent = `已读取 ${result.seen} 个上游站点，导入 ${result.imported} 个，跳过 ${result.skipped} 个。`;
+    await loadRecoveryAdmin(); toast('恢复站点已导入');
+  } catch (error) { handleError(error); } finally { button.disabled = false; }
+});
 $('#planCatalogTable').addEventListener('click', async event => {
   const button = event.target.closest('[data-buy-plan]'); if (!button) return;
   const plan = state.billingPlans.find(item => item.id === Number(button.dataset.buyPlan));
@@ -3664,7 +3772,9 @@ $('#walletAdjustForm').addEventListener('submit', async event => {
   if (!await confirmAction({ title: '确认调整余额', message: `${wallet.username}：${formatMoney(wallet.balanceCents)} ${amountCents > 0 ? '+' : '-'} ${formatMoney(Math.abs(amountCents))} = ${formatMoney(next)}。原因：${form.elements.description.value.trim()}`, confirmLabel: '确认调整', danger: amountCents < 0 })) return;
   try { await api(`/api/admin/billing/wallets/${form.elements.userId.value}/adjust`, { method: 'POST', body: JSON.stringify({ amountCents, description: form.elements.description.value.trim() }) }); $('#walletAdjustDialog').close(); await loadBillingAdmin(); toast('客户余额已调整'); } catch (error) { handleError(error); }
 });
-$('#copyGeneratedCodes').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('#generatedCodes').value); toast('兑换码已复制'); } catch { toast('浏览器不允许自动复制，请手动选择', true); } });
+$('#copyRecoveryRecordName').addEventListener('click', () => copyText($('#recoveryRecordName').textContent, 'TXT 记录名已复制').catch(() => toast('复制失败，请手动选择记录名', true)));
+$('#copyRecoveryRecordValue').addEventListener('click', () => copyText($('#recoveryRecordValue').textContent, 'TXT 内容已复制').catch(() => toast('复制失败，请手动选择 TXT 内容', true)));
+$('#copyGeneratedCodes').addEventListener('click', () => copyText($('#generatedCodes').value, '兑换码已复制').catch(() => toast('复制失败，请手动选择兑换码', true)));
 
 $('#planForm').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; const id = form.elements.id.value; const nullableInt = value => value === '' ? null : Number(value);

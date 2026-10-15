@@ -15,7 +15,7 @@ const ID_TABLES = new Set([
   'wallet_transactions', 'recharge_codes', 'recharge_code_uses', 'recharge_code_batches',
   'registration_invites', 'user_configs', 'user_api_keys',
   'customer_site_groups', 'customer_stream_groups', 'upstream_customer_groups', 'upstream_customer_group_history',
-  'monitor_documents',
+  'monitor_documents', 'recovery_sites', 'recovery_site_domains', 'recovery_activation_grants', 'recovery_claims',
 ]);
 
 pg.types.setTypeParser(pg.types.builtins.INT8, value => Number(value));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Arenode 控制台</title>
-  <link rel="stylesheet" href="/styles.css?v=status2">
+  <link rel="stylesheet" href="/styles.css?v=recovery1">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -146,7 +146,7 @@
         <div class="admin-only admin-nav">
           <label class="nav-search"><span>⌕</span><input id="adminNavSearch" type="search" placeholder="搜索后台功能" aria-label="搜索后台功能"></label>
           <button data-view="admin-overview" data-title="管理控制台" class="nav-direct active"><span class="nav-icon">◆</span><span>管理控制台</span></button>
-          <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">♙</span><span>运营管理</span><i></i></button><div class="nav-children"><button data-view="users" data-title="客户管理"><span></span>客户管理</button><button data-view="invitations" data-title="邀请码"><span></span>邀请码</button><button data-view="admin-sites" data-title="站点管理"><span></span>站点管理</button><button data-view="admin-streams" data-title="四层转发"><span></span>四层转发</button><button data-view="billing-admin" data-admin-billing-tab="usage" data-title="客户用量"><span></span>客户用量</button></div></section>
+          <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">♙</span><span>运营管理</span><i></i></button><div class="nav-children"><button data-view="users" data-title="客户管理"><span></span>客户管理</button><button data-view="invitations" data-title="邀请码"><span></span>邀请码</button><button data-view="admin-sites" data-title="站点管理"><span></span>站点管理</button><button data-view="admin-streams" data-title="四层转发"><span></span>四层转发</button><button data-view="recovery-admin" data-title="灾后恢复"><span></span>灾后恢复</button><button data-view="billing-admin" data-admin-billing-tab="usage" data-title="客户用量"><span></span>客户用量</button></div></section>
           <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">▰</span><span>套餐管理</span><i></i></button><div class="nav-children"><button data-view="billing-admin" data-admin-billing-tab="plans" data-title="套餐目录"><span></span>套餐目录</button><button data-view="billing-admin" data-admin-billing-tab="groups" data-title="套餐分组"><span></span>套餐分组</button><button data-view="billing-admin" data-admin-billing-tab="upgrades" data-title="增值项"><span></span>增值项</button><button data-view="billing-admin" data-admin-billing-tab="traffic" data-title="流量包"><span></span>流量包</button><button data-view="billing-admin" data-admin-billing-tab="codes" data-title="权益兑换码"><span></span>权益兑换码</button><button data-view="billing-admin" data-admin-billing-tab="subscriptions" data-title="客户套餐"><span></span>客户套餐</button></div></section>
           <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">¥</span><span>财务管理</span><i></i></button><div class="nav-children"><button data-view="billing-admin" data-admin-billing-tab="wallets" data-title="客户余额"><span></span>客户余额</button><button data-view="billing-admin" data-admin-billing-tab="recharge" data-title="余额充值码"><span></span>余额充值码</button><button data-view="billing-admin" data-admin-billing-tab="orders" data-title="订单记录"><span></span>订单记录</button><button data-view="billing-admin" data-admin-billing-tab="reports" data-title="财务报表"><span></span>财务报表</button></div></section>
           <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">≡</span><span>安全与审计</span><i></i></button><div class="nav-children"><button data-view="administrators" data-title="管理员"><span></span>管理员</button><button data-view="audit" data-title="审计日志"><span></span>审计日志</button></div></section>
@@ -429,9 +429,27 @@
           <section class="panel"><div class="toolbar"><label class="search"><span>⌕</span><input id="adminStreamSearch" placeholder="搜索客户、资源 ID 或上游 ID"></label><span id="adminStreamCount" class="count-label">0 个转发</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>名称 / CNAME</th><th>客户 / 套餐</th><th>监听</th><th>源站</th><th>同步状态</th><th>更新时间</th><th class="right">操作</th></tr></thead><tbody id="adminStreamTable"></tbody></table></div><div id="adminStreamsEmpty" class="empty hidden"><span>⌁</span><h4>暂无四层转发</h4><p>可以为已有有效套餐的客户创建转发。</p></div><div id="adminStreamsPager" class="pager"></div></section>
         </section>
 
+        <section id="recovery-admin" class="view admin-only">
+          <div class="section-head"><div><small class="section-context">运营管理</small><h3>灾后恢复</h3><p>导入上游遗留站点，客户验证域名后自动认领。</p></div><button id="refreshRecoveryAdmin" class="secondary" type="button">↻ 刷新</button></div>
+          <section class="module-banner page-hero admin-hero"><div class="hero-copy"><small>DISASTER RECOVERY</small><span class="banner-icon">↺</span><div><h3>站点找回</h3><p>恢复套餐只在域名控制权验证成功后激活，每个客户一次。</p></div></div><span class="isolation-pill">管理员专属</span></section>
+          <section class="panel"><div class="panel-head"><div><h3>导入上游站点</h3><p>只保存站点配置快照，不向客户暴露源站信息。</p></div></div><form id="recoveryImportForm" class="inline-form"><label>上游账号<input name="upstreamId" type="number" min="1" required placeholder="上游 ID"></label><label>上游套餐 ID<input name="upstreamPackageId" required placeholder="例如 16180"></label><button class="primary" type="submit">导入站点</button></form><p id="recoveryImportResult" class="status-text"></p></section>
+          <section class="panel"><div class="toolbar"><strong>恢复站点清单</strong><span id="recoveryAdminCount" class="count-label">0 个站点</span></div><div class="table-wrap"><table><thead><tr><th>域名</th><th>状态</th><th>客户</th><th>上游站点</th><th>认领时间</th></tr></thead><tbody id="recoveryAdminTable"></tbody></table></div><div id="recoveryAdminEmpty" class="empty hidden"><span>↺</span><h4>暂无恢复站点</h4><p>先导入上游遗留站点。</p></div></section>
+        </section>
+
         <section id="billing" class="view customer-only">
           <div class="section-head"><div><small class="section-context">资源管理</small><h3 id="billingPageTitle">我的套餐</h3><p id="billingPageSubtitle">查看当前套餐资源、有效期和绑定资源</p></div><button id="refreshBilling" class="secondary">↻ 刷新</button></div>
           <div id="billingWarning" class="quota-warning hidden"></div>
+          <section class="panel billing-section tenant-billing-pane" data-tenant-billing-pane="current">
+            <div class="panel-head"><div><h3>灾后站点找回</h3><p>输入你曾经使用过的域名，验证 DNS TXT 后恢复到本账号。</p></div><span id="recoveryActivationStatus" class="badge off">尚未激活</span></div>
+            <form id="recoveryClaimForm" class="inline-form"><input name="domain" required autocomplete="off" placeholder="example.com"><button class="primary" type="submit">生成验证记录</button></form>
+            <div id="recoveryClaimResult" class="recovery-claim-result hidden" aria-live="polite">
+              <div class="recovery-record-row"><span>TXT 记录名</span><code id="recoveryRecordName"></code><button id="copyRecoveryRecordName" class="secondary" type="button">复制记录名</button></div>
+              <div class="recovery-record-row"><span>TXT 内容</span><code id="recoveryRecordValue"></code><button id="copyRecoveryRecordValue" class="secondary" type="button">复制 TXT 内容</button></div>
+              <small>记录有效期至 <strong id="recoveryRecordExpires"></strong></small>
+            </div>
+            <button id="recoveryVerifyButton" class="secondary hidden" type="button">验证 TXT 并认领</button>
+            <p id="recoveryClaimHint" class="muted">一份恢复套餐最多 15 个域名、15 个端口，流量不限；同一账号只能激活一次。</p>
+          </section>
           <section class="wallet-hero tenant-billing-pane" data-tenant-billing-pane="current,wallet">
             <div class="wallet-summary"><div><small>可用余额</small><strong id="walletBalance">¥0.00</strong></div><div><small>累计充值</small><strong id="walletRecharge">¥0.00</strong></div><div><small>累计消费</small><strong id="walletSpent">¥0.00</strong></div><p>套餐、增值项和流量包均使用余额即时支付</p></div>
             <form id="rechargeCodeForm" class="wallet-recharge"><label>充值码<input name="code" required autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX"></label><button class="primary" type="submit">立即充值</button></form>
@@ -756,6 +774,6 @@
   <dialog id="recordDialog" class="wide-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">RECORDS</p><h3 id="recordDialogTitle">记录</h3></div><button type="button" class="icon-button" data-close="recordDialog" aria-label="关闭">×</button></div><div id="recordDialogBody" class="record-list"></div><div class="dialog-actions"><button type="button" class="primary" data-close="recordDialog">关闭</button></div></form></dialog>
   <dialog id="inviteDialog"><form id="inviteForm" method="dialog"><div class="dialog-head"><div><p class="eyebrow">REGISTRATION INVITE</p><h3>生成邀请码</h3></div><button type="button" class="icon-button" data-close="inviteDialog" aria-label="关闭">×</button></div><label>生成数量<input name="count" type="number" min="1" max="100" value="1" required></label><label>单码可用次数<input name="maxUses" type="number" min="1" max="100000" value="1" required></label><label>过期时间<input name="expiresAt" type="datetime-local"></label><label>标签<input name="label" maxlength="120"></label><div class="dialog-actions"><button type="button" class="secondary" data-close="inviteDialog">取消</button><button type="submit" class="primary">生成邀请码</button></div></form></dialog>
 
-      <script type="module" src="/app.js?v=sessionip1"></script>
+      <script type="module" src="/app.js?v=recovery1-sessionip1"></script>
 </body>
 </html>

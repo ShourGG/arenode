@@ -1,3 +1,4 @@
+import { handleRecoveryApi } from './recovery.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -166,7 +167,7 @@ function summarizeUpstreamHealth(active, checks) {
   return { ok, degraded, stale: transientHealthy > 0, checkedAt: checks.at(-1)?.checkedAt || new Date().toISOString() };
 }
 
-export function createApp({ db, cdnfly, upstreams = null, config, billing = null, cache = null, mailer = null, turnstileFetch = fetch, dnsResolveCname }) {
+export function createApp({ db, cdnfly, upstreams = null, config, billing = null, cache = null, mailer = null, turnstileFetch = fetch, dnsResolveCname, dnsResolveTxt }) {
   const resolveClientIp = createClientIpResolver(config.trustedProxyCidrs);
   const loginAttempts = new Map();
   const registrationAttempts = new Map();
@@ -615,6 +616,12 @@ export function createApp({ db, cdnfly, upstreams = null, config, billing = null
         if (upstreamResult) {
           if (upstreamResult.action) await audit(db, user.id, upstreamResult.action, 'upstream', upstreamResult.resourceId, null, req);
           return json(res, upstreamResult.status, upstreamResult.data);
+        }
+
+        const recoveryResult = await handleRecoveryApi({ req, url, user, db, billing, upstreams, readBody: () => readBody(req), dnsResolveTxt });
+        if (recoveryResult) {
+          if (recoveryResult.action) await audit(db, user.id, recoveryResult.action, 'recovery', recoveryResult.resourceId, null, req);
+          return json(res, recoveryResult.status, recoveryResult.data);
         }
 
         const adminResult = await handleAdminApi({ req, url, user, db, cdnfly, upstreams, billing, readBody: () => readBody(req) });
