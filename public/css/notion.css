@@ -58,7 +58,7 @@ button, a, input, select, textarea { transition-duration: .15s; transition-timin
 .brand-mark span { border-color: var(--accent); }
 .login-panel { background: var(--panel); }
 .login-form h2 { color: var(--ink); }
-.mobile-brand { color: var(--ink); }
+.mobile-brand { color: var(--ink); font-family: inherit; font-size: 19px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
 .mobile-brand .brand-mark { border-color: var(--line-strong); }
 
 /* ===== 间距系统归一（Phase 2e）：标尺 4/8/12/16/20/24，面板内左缘对齐 16px，控件高度统一 40px ===== */
@@ -185,4 +185,39 @@ dialog .repeater-head { margin: 0 0 12px; }
   .site-config-tabs { top: 56px; }
   .monitor-rail button { min-height: 64px; }
   #recoveryImportForm { grid-template-columns: 1fr; }
+}
+
+/* ===== Factory 风格登录页：左侧品牌+巨型标题表单，右侧半调点阵艺术 ===== */
+.login-shell { grid-template-columns: minmax(520px, 44%) 1fr; background: var(--canvas); }
+.login-brand { position: absolute; inset: 0; z-index: 3; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
+.login-brand > * { pointer-events: auto; }
+.login-brand .brand-mark { position: absolute; top: 28px; left: 34px; width: 34px; height: 34px; }
+.login-brand .brand-mark span { width: 16px; height: 6px; }
+.login-brand .brand-mark span:first-child { transform: translateY(-6px); }
+.login-brand .brand-mark span:last-child { transform: translateY(6px); }
+.login-brand > div { position: absolute; top: 34px; left: 82px; }
+.login-brand .eyebrow, .login-brand .login-copy { display: none; }
+.login-brand h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
+.login-brand .trust-line { bottom: 26px; left: 36px; margin: 0; }
+.login-panel { display: flex; align-items: center; justify-content: center; padding: 96px 48px 72px; background: var(--canvas); }
+.login-form { width: min(440px, 100%); padding-block: 0; }
+.login-form > .eyebrow { margin: 0 0 16px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
+.login-form > h2 { margin: 0 0 14px; font-size: clamp(38px, 4.4vw, 56px); line-height: 1.06; letter-spacing: -.02em; }
+.login-form > .muted { margin: 0 0 36px; font-size: 15px; }
+.login-art { position: relative; overflow: hidden; border-left: 1px solid var(--line); background: var(--panel); }
+.login-art .art-dots {
+  position: absolute; inset: 0;
+  background: var(--text-2); opacity: .55;
+  -webkit-mask-image: url('/assets/login-halftone.svg'); mask-image: url('/assets/login-halftone.svg');
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: min(88%, 820px); mask-size: min(88%, 820px);
+}
+@media (max-width: 1024px) {
+  .login-shell { grid-template-columns: 1fr; }
+  .login-art { display: none; }
+}
+@media (max-width: 768px) {
+  .login-panel { align-items: flex-start; padding: 28px 20px; }
+  .login-form > h2 { font-size: 34px; }
 }

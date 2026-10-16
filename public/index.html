@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <script>try { document.documentElement.dataset.theme = localStorage.getItem('arenode-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (error) {}</script>
+  <script src="/js/theme-init.js"></script>
   <title>Arenode 控制台</title>
   <link rel="stylesheet" href="/css/base.css?v=recovery1">
   <link rel="stylesheet" href="/css/theme.css?v=recovery1">
@@ -83,6 +83,7 @@
         <p class="login-help"><button id="forgotBackLogin" class="inline-action" type="button">返回登录</button></p>
       </form>
     </section>
+    <aside class="login-art" aria-hidden="true"><div class="art-dots"></div></aside>
   </main>
 
   <div id="appView" class="app-shell hidden">

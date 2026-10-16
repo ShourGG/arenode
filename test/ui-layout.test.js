@@ -31,6 +31,10 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(app, /sessionStorage\.setItem\('arenode-service-status'/);
   assert.match(html, /id="bootSplash"/);
   assert.match(html, /id="loginView" class="login-shell hidden"/);
+  // Factory 风格登录页契约：右侧半调点阵艺术层 + 巨型表单标题
+  assert.match(html, /<aside class="login-art" aria-hidden="true"><div class="art-dots"><\/div><\/aside>/);
+  assert.match(css, /\.login-art \.art-dots\s*\{[^}]*mask-image: url\('\/assets\/login-halftone\.svg'\)/);
+  assert.match(css, /\.login-form > h2\s*\{[^}]*clamp\(38px, 4\.4vw, 56px\)/);
   assert.match(html, /id="recoveryRecordName"/);
   assert.match(html, /id="recoveryRecordValue"/);
   assert.match(html, /id="copyRecoveryRecordValue"[^>]*>复制 TXT 内容<\/button>/);
@@ -57,7 +61,9 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--panel:\s*#202020/);
   assert.match(html, /id="themeToggle"/);
   assert.match(html, /<meta name="color-scheme" content="light dark">/);
-  assert.match(html, /localStorage\.getItem\('arenode-theme'\)/);
+  assert.match(html, /<script src="\/js\/theme-init\.js"><\/script>/);
+  assert.match(app, /localStorage\.getItem\('arenode-theme'\)/);
+  assert.doesNotMatch(html, /<script>try \{ document\.documentElement\.dataset\.theme/);
   assert.match(app, /localStorage\.setItem\('arenode-theme'/);
   assert.match(app, /arenode:themechange/);
   // 主题切换特效契约：View Transition 圆形扩散 + 降级全局渐变 + 尊重减弱动画偏好
