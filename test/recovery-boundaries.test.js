@@ -68,6 +68,63 @@ test('其他客户不能使用本账号的认领挑战', async t => {
   assert.equal(f.db.prepare('SELECT COUNT(*) AS count FROM recovery_activation_grants').get().count, 0);
 });
 
+test('通配符别名必须证明基础域名控制权，全部验证后才能转移整站', async t => {
+  const f = await fixture(t, 'first.example.com *.victim.example.net');
+  const { data } = await f.create('first.example.com');
+  f.txt.set(data.claim.record.name, data.claim.record.value);
+  const missing = await f.verify(data.claim.id);
+  assert.equal(missing.status, 409);
+  assert.deepEqual(missing.data.additionalRecordNames, ['_arenode-claim.victim.example.net']);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS count FROM sites').get().count, 0);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS count FROM recovery_activation_grants').get().count, 0);
+  f.txt.set('_arenode-claim.victim.example.net', data.claim.record.value);
+  assert.equal((await f.verify(data.claim.id)).status, 200);
+  assert.equal(f.db.prepare('SELECT domain FROM sites').get().domain, 'first.example.com *.victim.example.net');
+});
+
+test('仅通配符站点支持大小写和末尾点归一化及基础域名 TXT 认领', async t => {
+  const f = await fixture(t, '*.Example.NET.');
+  const { data } = await f.create('*.EXAMPLE.net.');
+  assert.equal(data.claim.record.name, '_arenode-claim.example.net');
+  f.txt.set(data.claim.record.name, data.claim.record.value);
+  assert.equal((await f.verify(data.claim.id)).status, 200);
+});
+
+test('非法别名不能被导入或从已有恢复清单验证时忽略', async t => {
+  for (const alias of ['bad/path', '*.*.example.net', 'bad:443']) {
+    await assert.rejects(fixture(t, `first.example.com ${alias}`), /域名格式无效/);
+  }
+  const f = await fixture(t);
+  const { data } = await f.create('first.example.com');
+  f.txt.set(data.claim.record.name, data.claim.record.value);
+  f.db.prepare("UPDATE recovery_sites SET domain='first.example.com bad/path' WHERE upstream_site_id='up-1'").run();
+  await assert.rejects(f.verify(data.claim.id), /域名格式无效/);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS count FROM sites').get().count, 0);
+});
+
+test('DNS 查询期间新增非法别名也阻止认领', async t => {
+  const f = await fixture(t);
+  const { data } = await f.create('first.example.com');
+  f.setResolver(async () => {
+    f.db.prepare("UPDATE recovery_sites SET domain='first.example.com bad/path' WHERE upstream_site_id='up-1'").run();
+    return [[data.claim.record.value]];
+  });
+  await assert.rejects(f.verify(data.claim.id), /域名格式无效/);
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS count FROM recovery_activation_grants').get().count, 0);
+});
+
+test('超过 2048 字符的域名清单保留并验证末尾别名', async t => {
+  const domains = ['first.example.com', ...Array.from({ length: 11 }, (_, i) => `${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.n${i}.example.net`), 'last.example.net'];
+  assert.ok(domains.join(' ').length > 2048);
+  const f = await fixture(t, domains.join(' '));
+  const { data } = await f.create(domains[0]);
+  for (const domain of domains.slice(0, -1)) f.txt.set(`_arenode-claim.${domain}`, data.claim.record.value);
+  assert.deepEqual((await f.verify(data.claim.id)).data.additionalRecordNames, ['_arenode-claim.last.example.net']);
+  f.txt.set('_arenode-claim.last.example.net', data.claim.record.value);
+  assert.equal((await f.verify(data.claim.id)).status, 200);
+  assert.equal(f.db.prepare('SELECT domain FROM sites').get().domain, domains.join(' '));
+});
+
 for (const [label, sql] of [
   ['查询 DNS 期间挑战过期', "UPDATE recovery_claims SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1 minute'"],
   ['查询 DNS 期间重新生成挑战', "UPDATE recovery_claims SET challenge_hash='replacement'"],
