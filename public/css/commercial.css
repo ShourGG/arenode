@@ -34,7 +34,7 @@
 .plan-change-quote span { color: #8190a5; }
 .plan-change-quote strong { color: #263650; text-align: right; }
 #planChangeQuoteStatus { min-height: 18px; margin: 12px 0 0; font-size: 11px; }
-@media (max-width: 560px) {
+@media (max-width: 768px) {
   .subscription-card footer { align-items: stretch; flex-direction: column; }
   .subscription-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .plan-change-quote { grid-template-columns: 1fr; }
@@ -74,7 +74,7 @@
 .pager > div { display: flex; gap: 8px; }
 .pager button { min-width: 76px; min-height: 36px; }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .report-grid { grid-template-columns: 1fr; }
   .inline-settings-actions { align-items: stretch; flex-direction: column; }
   .account-action-row { align-items: stretch; flex-direction: column; }

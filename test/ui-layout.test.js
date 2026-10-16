@@ -42,8 +42,16 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(html, /<title>Arenode 控制台<\/title>/);
   assert.match(html, /class="arenode-logo"[^>]*>A<\/div>/);
   assert.match(app, /function syncWorkbenchLayout\(\)/);
-  assert.match(app, /contextRailVisible \? 'grid' : 'none'/);
+  // 二级 rail 显隐已改为 .rail-hidden 类驱动（不再使用 JS 内联 !important）
+  assert.match(app, /classList\.toggle\('rail-hidden', !contextRailVisible\)/);
   assert.match(app, /layout\.classList\.contains\('data-workbench'\)/);
+  assert.doesNotMatch(app, /style\.setProperty\('display'/);
+  assert.match(css, /\.workbench-layout\.rail-hidden\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(css, /\.workbench-layout\.rail-hidden\s*>\s*\.workbench-rail\s*\{\s*display:\s*none/);
+  // 可折叠侧栏契约：桌面折叠为 64px 图标栏，偏好持久化
+  assert.match(css, /\.app-shell\.nav-collapsed\s*\{\s*--sidebar-w:\s*64px/);
+  assert.match(css, /\.app-shell\.nav-collapsed\s+\.nav-cluster:hover\s+\.nav-children/);
+  assert.match(app, /localStorage\.setItem\('arenode-nav-collapsed'/);
   assert.match(app, /function actionMenu\(content\)/);
   assert.match(app, /popover="auto"/);
   assert.doesNotMatch(app, /<details class="action-menu">/);

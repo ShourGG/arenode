@@ -97,7 +97,12 @@ $('#nav').addEventListener('click', event => {
     saveNavState(cluster.closest('.tenant-nav, .admin-nav'));
     return;
   }
-  const button = event.target.closest('[data-view]'); if (button) navigateFromButton(button);
+  const button = event.target.closest('[data-view]');
+  if (button) {
+    navigateFromButton(button);
+    // 移动端导航后自动收起抽屉
+    if (window.matchMedia('(max-width: 1024px)').matches) $('.sidebar').classList.remove('open');
+  }
 });
 
 function navStorageKey(nav) { return nav?.classList.contains('admin-nav') ? 'cdnfly-admin-nav' : 'cdnfly-tenant-nav'; }

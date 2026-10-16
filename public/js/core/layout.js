@@ -2,26 +2,18 @@ import { state } from '../state/index.js';
 import { closeActionPopovers } from '../components/action-menu.js';
 import { $, $$ } from './dom.js';
 
+// 工作台二级 rail 显隐：只切换 .rail-hidden 类，栅格与响应式全部由 CSS 媒体查询驱动
 export function syncWorkbenchLayout() {
-  const compact = window.matchMedia('(max-width: 900px)').matches;
   for (const layout of $$('.workbench-layout')) {
     const rail = $('.workbench-rail', layout); const main = $('.workbench-main, .data-workbench-main', layout);
     if (!rail || !main) continue;
-    if (layout.classList.contains('data-workbench')) {
-      layout.style.width = '100%'; layout.style.gridTemplateColumns = 'minmax(0, 1fr)';
-      rail.hidden = true; rail.style.setProperty('display', 'none', 'important');
-      main.style.width = '100%'; main.style.minWidth = '0'; main.style.gridColumn = '1';
-      continue;
-    }
-    const contextRailVisible = rail.id !== 'resourceContextRail' || ['certs', 'dnsapis'].includes(state.resourceKind);
-    layout.style.width = '100%'; layout.style.gridTemplateColumns = contextRailVisible && !compact ? '220px minmax(0, 1fr)' : 'minmax(0, 1fr)';
-    rail.hidden = !contextRailVisible; rail.classList.toggle('hidden', !contextRailVisible); rail.style.setProperty('display', contextRailVisible ? 'grid' : 'none', 'important'); rail.style.gridColumn = '1';
-    main.style.width = '100%'; main.style.minWidth = '0'; main.style.gridColumn = compact ? '1' : '2';
-    if (!contextRailVisible) main.style.gridColumn = '1';
+    const contextRailVisible = !layout.classList.contains('data-workbench')
+      && (rail.id !== 'resourceContextRail' || ['certs', 'dnsapis'].includes(state.resourceKind));
+    layout.classList.toggle('rail-hidden', !contextRailVisible);
   }
 }
 
-window.addEventListener('resize', () => { syncWorkbenchLayout(); closeActionPopovers(); });
+window.addEventListener('resize', () => { closeActionPopovers(); });
 
 $('#dismissAnnouncement').addEventListener('click', () => {
   const dialog = $('#announcementDialog'); if (dialog.dataset.dismissible === 'true') localStorage.setItem(dialog.dataset.storageKey, 'dismissed'); dialog.close();
@@ -74,7 +66,13 @@ export function applyPublicSettings(settings) {
   renderAnnouncement(settings);
 }
 
-$('#menuButton').addEventListener('click', () => $('.sidebar').classList.toggle('open'));
+// 导航开关：移动端切抽屉，桌面端切折叠图标栏（偏好持久化）
+$('#menuButton').addEventListener('click', () => {
+  if (window.matchMedia('(max-width: 1024px)').matches) { $('.sidebar').classList.toggle('open'); return; }
+  const collapsed = $('#appView').classList.toggle('nav-collapsed');
+  try { localStorage.setItem('arenode-nav-collapsed', collapsed ? '1' : '0'); } catch {}
+});
+try { if (localStorage.getItem('arenode-nav-collapsed') === '1') $('#appView').classList.add('nav-collapsed'); } catch {}
 
 function updateSystemClock() {
   $('#systemClock').textContent = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());

@@ -35,13 +35,13 @@
 .switch-setting input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .switch-setting input[type="checkbox"]:focus-visible { outline: 3px solid rgba(22,119,255,.2); outline-offset: 2px; }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .wallet-hero { align-items: stretch; flex-direction: column; padding: 20px; }
   .wallet-recharge { width: 100%; }
   .settings-grid { grid-template-columns: 1fr; padding: 16px; }
   .settings-grid .full { grid-column: auto; }
 }
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .login-panel { align-items: start; padding: 20px; }
   .mobile-brand { margin-bottom: 34px; }
   .login-form { padding-block: 18px; }
