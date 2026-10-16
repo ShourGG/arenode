@@ -196,6 +196,8 @@ dialog .repeater-head { margin: 0 0 12px; }
 .login-brand > * { pointer-events: auto; }
 .brand-mark { width: 32px; height: 32px; border: 0; transform: none; background: var(--accent); -webkit-mask: url('/assets/logo-flower.svg') center / contain no-repeat; mask: url('/assets/logo-flower.svg') center / contain no-repeat; }
 .brand-mark span { display: none; }
+.brand-mark { transition: rotate .5s cubic-bezier(.22, .8, .3, 1); }
+.login-brand:hover .brand-mark, .mobile-brand:hover .brand-mark { rotate: 120deg; }
 .login-brand .brand-mark { position: absolute; top: 28px; left: 34px; }
 .login-brand > div { position: absolute; top: 34px; left: 80px; }
 .login-brand .eyebrow, .login-brand .login-copy { display: none; }
@@ -214,9 +216,12 @@ dialog .repeater-head { margin: 0 0 12px; }
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
   -webkit-mask-size: min(88%, 820px); mask-size: min(88%, 820px);
-  animation: art-drift 26s ease-in-out infinite alternate;
+  animation: art-spin 60s linear infinite, art-breathe 9s ease-in-out infinite, art-enter .9s cubic-bezier(.22, .8, .3, 1) both;
 }
-@keyframes art-drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-14px, 12px); } }
+/* 右侧花朵特效：齿轮式恒速旋转（6 瓣对称，循环无缝）+ 轻微呼吸缩放 + 入场浮现 */
+@keyframes art-spin { to { rotate: 360deg; } }
+@keyframes art-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
+@keyframes art-enter { from { opacity: 0; translate: 0 18px; } }
 /* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
 .login-shell:not(.hidden) { animation: login-fade .45s ease-out; }
 @keyframes login-fade { from { opacity: 0; } }

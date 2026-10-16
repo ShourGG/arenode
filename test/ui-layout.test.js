@@ -38,7 +38,8 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   // Factory 1:1 复刻契约：登录页橙色主调作用域 + 六瓣花朵 logo（mask 取令牌色）+ 点阵漂移与表单入场动画
   assert.match(css, /\.login-shell\s*\{[^}]*--accent:\s*#ff4d00/);
   assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/logo-flower\.svg'\)/);
-  assert.match(css, /@keyframes art-drift/);
+  assert.match(css, /@keyframes art-spin \{\s*to \{ rotate: 360deg/);
+  assert.match(css, /@keyframes art-breathe/);
   assert.match(css, /@keyframes auth-rise/);
   assert.match(app, /appView\.classList\.add\('app-entering'\)/);
   assert.match(css, /\.app-entering \.view\.active > \*\s*\{[^}]*auth-rise/);
