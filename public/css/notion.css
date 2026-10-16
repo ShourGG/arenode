@@ -189,9 +189,15 @@ dialog .repeater-head { margin: 0 0 12px; }
 
 /* ===== Factory 风格登录页（1:1 复刻）：橙色主调 + 六瓣花朵点阵 + 进场特效 ===== */
 .login-shell {
-  grid-template-columns: minmax(520px, 44%) 1fr; background: var(--canvas);
+  grid-template-columns: minmax(520px, 44%) 1fr;
   --accent: #ff4d00; --accent-dark: #e04400; --accent-line: #ffd2bd; --bg-accent-soft: #fff1e9;
+  --login-glow: #ffeee3;
+  background: linear-gradient(125deg, var(--canvas) 0%, var(--login-glow) 45%, var(--canvas) 100%);
+  background-size: 220% 220%;
 }
+[data-theme='dark'] .login-shell { --login-glow: #251c16; }
+/* 整页背景渐变过渡：暖橙光晕 24s 缓慢对角平移（与入场淡入并列，避免 shorthand 互相覆盖） */
+@keyframes login-bg-pan { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
 .login-brand { position: absolute; inset: 0; z-index: 3; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
 .login-brand > * { pointer-events: auto; }
 .brand-mark { width: 32px; height: 32px; border: 0; transform: none; background: var(--accent); -webkit-mask: url('/assets/logo-flower.svg') center / contain no-repeat; mask: url('/assets/logo-flower.svg') center / contain no-repeat; }
@@ -203,12 +209,25 @@ dialog .repeater-head { margin: 0 0 12px; }
 .login-brand .eyebrow, .login-brand .login-copy { display: none; }
 .login-brand h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
 .login-brand .trust-line { bottom: 26px; left: 36px; margin: 0; }
-.login-panel { display: flex; align-items: center; justify-content: center; padding: 96px 48px 72px; background: var(--canvas); }
+.login-panel { display: flex; align-items: center; justify-content: center; padding: 96px 48px 72px; background: transparent; }
 .login-form { width: min(440px, 100%); padding-block: 0; }
 .login-form > .eyebrow { margin: 0 0 16px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
 .login-form > h2 { margin: 0 0 14px; font-size: clamp(38px, 4.4vw, 56px); line-height: 1.06; letter-spacing: -.02em; }
 .login-form > .muted { margin: 0 0 36px; font-size: 15px; }
-.login-art { position: relative; overflow: hidden; border-left: 1px solid var(--line); background: var(--panel); }
+.login-art {
+  position: relative; overflow: hidden; border-left: 1px solid var(--line);
+  background:
+    radial-gradient(46% 40% at 30% 28%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
+    radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%),
+    var(--panel);
+  background-repeat: no-repeat;
+  animation: art-gradient 16s ease-in-out infinite alternate;
+}
+/* 背景极光渐变：两块 accent 柔光缓慢对流 */
+@keyframes art-gradient {
+  from { background-position: -4% -3%, 0% 0%, 0 0; }
+  to { background-position: 5% 6%, -5% -7%, 0 0; }
+}
 .login-art .art-dots {
   position: absolute; inset: 0;
   background: var(--text-2); opacity: .55;
@@ -223,7 +242,7 @@ dialog .repeater-head { margin: 0 0 12px; }
 @keyframes art-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
 @keyframes art-enter { from { opacity: 0; translate: 0 18px; } }
 /* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
-.login-shell:not(.hidden) { animation: login-fade .45s ease-out; }
+.login-shell:not(.hidden) { animation: login-fade .45s ease-out, login-bg-pan 24s ease-in-out infinite alternate; }
 @keyframes login-fade { from { opacity: 0; } }
 .login-form > * { animation: auth-rise .5s cubic-bezier(.22, .8, .3, 1) both; }
 .login-form > *:nth-child(2) { animation-delay: 60ms; }
@@ -243,7 +262,7 @@ dialog .repeater-head { margin: 0 0 12px; }
   .login-form > h2 { font-size: 34px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .login-shell:not(.hidden), .login-form > *, .login-art .art-dots,
+  .login-shell:not(.hidden), .login-form > *, .login-art, .login-art .art-dots,
   .app-entering, .app-entering .sidebar, .app-entering .topbar, .app-entering .view.active > * { animation: none !important; }
 }
 

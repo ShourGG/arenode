@@ -40,6 +40,11 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/logo-flower\.svg'\)/);
   assert.match(css, /@keyframes art-spin \{\s*to \{ rotate: 360deg/);
   assert.match(css, /@keyframes art-breathe/);
+  assert.match(css, /@keyframes art-gradient/);
+  assert.match(css, /\.login-art\s*\{[^}]*radial-gradient\(46% 40% at 30% 28%, color-mix\(in srgb, var\(--accent\) 13%/);
+  assert.match(css, /@keyframes login-bg-pan/);
+  assert.match(css, /\.login-shell:not\(\.hidden\)\s*\{[^}]*login-bg-pan 24s/);
+  assert.match(css, /\[data-theme='dark'\] \.login-shell\s*\{\s*--login-glow:/);
   assert.match(css, /@keyframes auth-rise/);
   assert.match(app, /appView\.classList\.add\('app-entering'\)/);
   assert.match(css, /\.app-entering \.view\.active > \*\s*\{[^}]*auth-rise/);
