@@ -1,10 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const css = fs.readFileSync(new URL('../public/styles.css', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
-const app = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+// app.js 已拆分为入口 + public/js/** 模块；测试按模块拼接后断言，保持与旧单文件一致
+const walkJs = dir => fs.readdirSync(dir, { withFileTypes: true })
+  .flatMap(ent => ent.isDirectory() ? walkJs(path.join(dir, ent.name)) : ent.name.endsWith('.js') ? [path.join(dir, ent.name)] : []);
+const appSources = [fileURLToPath(new URL('../public/app.js', import.meta.url)), ...walkJs(fileURLToPath(new URL('../public/js', import.meta.url))).sort()];
+const app = appSources.map(file => fs.readFileSync(file, 'utf8')).join('\n');
 const monitorUtils = fs.readFileSync(new URL('../public/monitor-utils.js', import.meta.url), 'utf8');
 
 test('新版工作台导航和主面板保持稳定布局', () => {
