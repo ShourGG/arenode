@@ -55,3 +55,19 @@
 
 /* 主题切换按钮（两种主题通用的呈现） */
 .theme-toggle { width: 32px; height: 32px; font-size: 15px; }
+
+/* 主题切换特效：View Transition 圆形扩散（圆心=点击坐标，由 JS 写入 --theme-x/y） */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2147483646; animation: theme-circle-in .45s cubic-bezier(.4, 0, .2, 1); }
+@keyframes theme-circle-in {
+  from { clip-path: circle(0 at var(--theme-x, calc(100% - 120px)) var(--theme-y, 28px)); }
+  to { clip-path: circle(142vmax at var(--theme-x, calc(100% - 120px)) var(--theme-y, 28px)); }
+}
+/* 降级方案：不支持 View Transitions 时短暂开启全局颜色过渡 */
+.theme-fading, .theme-fading *, .theme-fading *::before, .theme-fading *::after {
+  transition: background-color .32s ease, color .32s ease, border-color .32s ease, box-shadow .32s ease, fill .32s ease, stroke .32s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}

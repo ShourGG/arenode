@@ -60,6 +60,14 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(html, /localStorage\.getItem\('arenode-theme'\)/);
   assert.match(app, /localStorage\.setItem\('arenode-theme'/);
   assert.match(app, /arenode:themechange/);
+  // 主题切换特效契约：View Transition 圆形扩散 + 降级全局渐变 + 尊重减弱动画偏好
+  assert.match(app, /document\.startViewTransition/);
+  assert.match(app, /--theme-x/);
+  assert.match(app, /theme-fading/);
+  assert.match(app, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /@keyframes theme-circle-in/);
+  assert.match(css, /::view-transition-new\(root\)\s*\{[^}]*theme-circle-in/);
+  assert.match(css, /\.theme-fading, \.theme-fading \*[^}]*transition: background-color/);
   // Notion 风格契约（Phase 2d）：米色画布、青蓝强调、扁平按钮、灰底选中导航、150ms 颜色过渡
   assert.match(css, /--canvas:\s*#f7f6f3/);
   assert.match(css, /--accent:\s*#2eaadc/);

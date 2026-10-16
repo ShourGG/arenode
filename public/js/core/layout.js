@@ -77,12 +77,31 @@ try { if (localStorage.getItem('arenode-nav-collapsed') === '1') $('#appView').c
 // 深浅色主题切换：初始值由 <head> 内联脚本写入 html[data-theme]，这里同步图标并处理点击
 const themeToggle = $('#themeToggle');
 const syncThemeIcon = () => { if (themeToggle) themeToggle.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '◐'; };
-themeToggle?.addEventListener('click', () => {
-  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = next;
-  try { localStorage.setItem('arenode-theme', next); } catch {}
-  syncThemeIcon();
-  window.dispatchEvent(new CustomEvent('arenode:themechange'));
+themeToggle?.addEventListener('click', (event) => {
+  const root = document.documentElement;
+  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  const applyTheme = () => {
+    root.dataset.theme = next;
+    try { localStorage.setItem('arenode-theme', next); } catch {}
+    syncThemeIcon();
+    window.dispatchEvent(new CustomEvent('arenode:themechange'));
+  };
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) { applyTheme(); return; }
+  // 现代浏览器：以点击位置为圆心圆形扩散揭示新主题（View Transitions API）
+  if (document.startViewTransition) {
+    root.style.setProperty('--theme-x', `${Math.round(event?.clientX ?? window.innerWidth - 120)}px`);
+    root.style.setProperty('--theme-y', `${Math.round(event?.clientY ?? 28)}px`);
+    const transition = document.startViewTransition(applyTheme);
+    Promise.resolve(transition?.finished).catch(() => {}).finally(() => {
+      root.style.removeProperty('--theme-x');
+      root.style.removeProperty('--theme-y');
+    });
+    return;
+  }
+  // 降级：短暂开启全局颜色过渡，平滑交叉淡化
+  root.classList.add('theme-fading');
+  applyTheme();
+  window.setTimeout(() => root.classList.remove('theme-fading'), 380);
 });
 syncThemeIcon();
 
