@@ -187,15 +187,17 @@ dialog .repeater-head { margin: 0 0 12px; }
   #recoveryImportForm { grid-template-columns: 1fr; }
 }
 
-/* ===== Factory 风格登录页：左侧品牌+巨型标题表单，右侧半调点阵艺术 ===== */
-.login-shell { grid-template-columns: minmax(520px, 44%) 1fr; background: var(--canvas); }
+/* ===== Factory 风格登录页（1:1 复刻）：橙色主调 + 六瓣花朵点阵 + 进场特效 ===== */
+.login-shell {
+  grid-template-columns: minmax(520px, 44%) 1fr; background: var(--canvas);
+  --accent: #ff4d00; --accent-dark: #e04400; --accent-line: #ffd2bd; --bg-accent-soft: #fff1e9;
+}
 .login-brand { position: absolute; inset: 0; z-index: 3; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
 .login-brand > * { pointer-events: auto; }
-.login-brand .brand-mark { position: absolute; top: 28px; left: 34px; width: 34px; height: 34px; }
-.login-brand .brand-mark span { width: 16px; height: 6px; }
-.login-brand .brand-mark span:first-child { transform: translateY(-6px); }
-.login-brand .brand-mark span:last-child { transform: translateY(6px); }
-.login-brand > div { position: absolute; top: 34px; left: 82px; }
+.brand-mark { width: 32px; height: 32px; border: 0; transform: none; background: var(--accent); -webkit-mask: url('/assets/logo-flower.svg') center / contain no-repeat; mask: url('/assets/logo-flower.svg') center / contain no-repeat; }
+.brand-mark span { display: none; }
+.login-brand .brand-mark { position: absolute; top: 28px; left: 34px; }
+.login-brand > div { position: absolute; top: 34px; left: 80px; }
 .login-brand .eyebrow, .login-brand .login-copy { display: none; }
 .login-brand h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
 .login-brand .trust-line { bottom: 26px; left: 36px; margin: 0; }
@@ -212,7 +214,21 @@ dialog .repeater-head { margin: 0 0 12px; }
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
   -webkit-mask-size: min(88%, 820px); mask-size: min(88%, 820px);
+  animation: art-drift 26s ease-in-out infinite alternate;
 }
+@keyframes art-drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-14px, 12px); } }
+/* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
+.login-shell:not(.hidden) { animation: login-fade .45s ease-out; }
+@keyframes login-fade { from { opacity: 0; } }
+.login-form > * { animation: auth-rise .5s cubic-bezier(.22, .8, .3, 1) both; }
+.login-form > *:nth-child(2) { animation-delay: 60ms; }
+.login-form > *:nth-child(3) { animation-delay: 120ms; }
+.login-form > *:nth-child(4) { animation-delay: 180ms; }
+.login-form > *:nth-child(5) { animation-delay: 240ms; }
+.login-form > *:nth-child(6) { animation-delay: 300ms; }
+.login-form > *:nth-child(7) { animation-delay: 360ms; }
+.login-form > *:nth-child(n+8) { animation-delay: 420ms; }
+@keyframes auth-rise { from { opacity: 0; translate: 0 14px; } }
 @media (max-width: 1024px) {
   .login-shell { grid-template-columns: 1fr; }
   .login-art { display: none; }
@@ -221,3 +237,20 @@ dialog .repeater-head { margin: 0 0 12px; }
   .login-panel { align-items: flex-start; padding: 28px 20px; }
   .login-form > h2 { font-size: 34px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .login-shell:not(.hidden), .login-form > *, .login-art .art-dots,
+  .app-entering, .app-entering .sidebar, .app-entering .topbar, .app-entering .view.active > * { animation: none !important; }
+}
+
+/* ===== 进入首页特效：外壳淡入，侧栏左滑入，顶栏下落，内容依次升起 ===== */
+.app-entering { animation: app-fade-in .45s ease-out; }
+.app-entering .sidebar { animation: app-slide-right .5s cubic-bezier(.22, .8, .3, 1) both; }
+.app-entering .topbar { animation: app-drop .5s cubic-bezier(.22, .8, .3, 1) both; }
+.app-entering .view.active > * { animation: auth-rise .55s cubic-bezier(.22, .8, .3, 1) both; }
+.app-entering .view.active > *:nth-child(2) { animation-delay: 70ms; }
+.app-entering .view.active > *:nth-child(3) { animation-delay: 140ms; }
+.app-entering .view.active > *:nth-child(4) { animation-delay: 210ms; }
+.app-entering .view.active > *:nth-child(n+5) { animation-delay: 280ms; }
+@keyframes app-fade-in { from { opacity: 0; } }
+@keyframes app-slide-right { from { opacity: 0; translate: -16px 0; } }
+@keyframes app-drop { from { opacity: 0; translate: 0 -12px; } }

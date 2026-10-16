@@ -35,6 +35,13 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(html, /<aside class="login-art" aria-hidden="true"><div class="art-dots"><\/div><\/aside>/);
   assert.match(css, /\.login-art \.art-dots\s*\{[^}]*mask-image: url\('\/assets\/login-halftone\.svg'\)/);
   assert.match(css, /\.login-form > h2\s*\{[^}]*clamp\(38px, 4\.4vw, 56px\)/);
+  // Factory 1:1 复刻契约：登录页橙色主调作用域 + 六瓣花朵 logo（mask 取令牌色）+ 点阵漂移与表单入场动画
+  assert.match(css, /\.login-shell\s*\{[^}]*--accent:\s*#ff4d00/);
+  assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/logo-flower\.svg'\)/);
+  assert.match(css, /@keyframes art-drift/);
+  assert.match(css, /@keyframes auth-rise/);
+  assert.match(app, /appView\.classList\.add\('app-entering'\)/);
+  assert.match(css, /\.app-entering \.view\.active > \*\s*\{[^}]*auth-rise/);
   assert.match(html, /id="recoveryRecordName"/);
   assert.match(html, /id="recoveryRecordValue"/);
   assert.match(html, /id="copyRecoveryRecordValue"[^>]*>复制 TXT 内容<\/button>/);

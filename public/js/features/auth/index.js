@@ -33,6 +33,12 @@ function showAuthForm(id) {
 export async function showApp() {
   state.me = state.me || await api('/api/me');
   $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
+  // 进入首页特效：外壳淡入 + 侧栏/顶栏/内容依次入场（reduced-motion 时由 CSS 关闭）
+  const appView = $('#appView');
+  appView.classList.remove('app-entering');
+  void appView.offsetWidth;
+  appView.classList.add('app-entering');
+  setTimeout(() => appView.classList.remove('app-entering'), 1000);
   hideBootSplash();
   if (!state.authConfig) {
     try { const settings = await api('/api/auth/config'); applyPublicSettings(settings); } catch {}
