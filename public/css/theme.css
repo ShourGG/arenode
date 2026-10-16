@@ -3,47 +3,50 @@
 
 /* 2026 operations console visual system */
 :root {
-  --ink: #14213a;
-  --muted: #7d8da8;
-  --line: #e3eaf4;
-  --canvas: #f3f7fc;
+  /* Notion 风格令牌（Phase 2d 全量换肤）：米色画布、深灰墨、青蓝强调、发线边框、轻阴影 */
+  --ink: #37352f;
+  --muted: #9c9a97;
+  --line: #e9e9e7;
+  --canvas: #f7f6f3;
   --panel: #ffffff;
-  --nav: #ffffff;
-  --nav-2: #eaf3ff;
-  --accent: #1677ff;
-  --accent-dark: #0b62dc;
-  --blue: #4d8dff;
-  --green: #18b981;
-  --amber: #f3a51d;
-  --rose: #f25f72;
-  --danger: #e84c4c;
-  --shadow: 0 14px 36px rgba(64, 91, 133, .09);
-  /* 语义化表面令牌（Phase 2c；深色覆写见 dark.css） */
-  --heading: #1d2b43;
-  --text-2: #52627a;
-  --text-3: #8795a9;
-  --line-strong: #ccd5d9;
-  --bg-subtle: #f8fbff;
-  --bg-hover: #f5f8fc;
-  --bg-accent-soft: #eaf3ff;
+  --nav: #f7f6f3;
+  --nav-2: #e3e1db;
+  --accent: #2eaadc;
+  --accent-dark: #259ab9;
+  --blue: #2eaadc;
+  --green: #0f7b6c;
+  --amber: #dfab01;
+  --rose: #eb5757;
+  --danger: #eb5757;
+  --shadow: 0 1px 2px rgba(15, 15, 15, .06);
+  --shadow-lg: 0 4px 14px rgba(15, 15, 15, .1);
+  /* 语义化表面令牌（深色覆写见 dark.css） */
+  --heading: #37352f;
+  --text-2: #5b5955;
+  --text-3: #9c9a97;
+  --line-strong: #d4d4d0;
+  --bg-subtle: #f7f6f3;
+  --bg-hover: #efedea;
+  --bg-active: #e3e1db;
+  --bg-accent-soft: #e8f6fb;
   --pill-bg: rgba(255, 255, 255, .82);
-  --topbar-bg: rgba(241, 246, 252, .92);
-  --green-ink: #139768;
-  --green-bg: #e7f8f1;
-  --amber-ink: #c37e08;
-  --amber-bg: #fff5df;
-  --rose-ink: #db4f65;
-  --rose-bg: #fff0f1;
-  --gray-bg: #eef2f6;
-  --accent-line: #bdd6ff;
-  --chart-grid: #e8eef6;
-  --chart-label: #8c9ab0;
-  --chart-fill-from: rgba(22, 119, 255, .22);
-  --chart-fill-to: rgba(22, 119, 255, 0);
-  --hero-grad-from: #edf5ff;
-  --hero-grad-to: #f8fbff;
+  --topbar-bg: rgba(247, 246, 243, .88);
+  --green-ink: #0f7b6c;
+  --green-bg: #edf7f4;
+  --amber-ink: #b88a00;
+  --amber-bg: #fbf3db;
+  --rose-ink: #eb5757;
+  --rose-bg: #fdebec;
+  --gray-bg: #f1f1ef;
+  --accent-line: #b6e2f0;
+  --chart-grid: #e9e9e7;
+  --chart-label: #9c9a97;
+  --chart-fill-from: rgba(46, 170, 220, .18);
+  --chart-fill-to: rgba(46, 170, 220, 0);
+  --hero-grad-from: #f7f6f3;
+  --hero-grad-to: #f7f6f3;
   --banner-grad-from: #ffffff;
-  --banner-grad-to: #f5f9ff;
+  --banner-grad-to: #f7f6f3;
   letter-spacing: 0;
 }
 body { color: var(--ink); background: var(--canvas); }

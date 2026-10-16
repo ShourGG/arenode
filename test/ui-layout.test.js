@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // styles.css 已按层拆分为 public/css/*.css（Phase 2a），测试按 link 顺序拼接后断言
-const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console', 'dark'];
+const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console', 'dark', 'notion'];
 const css = cssLayers.map(name => fs.readFileSync(new URL(`../public/css/${name}.css`, import.meta.url), 'utf8')).join('\n');
 const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 // app.js 已拆分为入口 + public/js/** 模块；测试按模块拼接后断言，保持与旧单文件一致
@@ -53,13 +53,20 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.app-shell\.nav-collapsed\s+\.nav-cluster:hover\s+\.nav-children/);
   assert.match(app, /localStorage\.setItem\('arenode-nav-collapsed'/);
   // 深浅色双主题契约：dark 层覆写令牌，顶栏切换按钮，偏好持久化，首屏内联脚本防闪烁
-  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--canvas:\s*#0d141e/);
-  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--panel:\s*#141e2c/);
+  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--canvas:\s*#191919/);
+  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--panel:\s*#202020/);
   assert.match(html, /id="themeToggle"/);
   assert.match(html, /<meta name="color-scheme" content="light dark">/);
   assert.match(html, /localStorage\.getItem\('arenode-theme'\)/);
   assert.match(app, /localStorage\.setItem\('arenode-theme'/);
   assert.match(app, /arenode:themechange/);
+  // Notion 风格契约（Phase 2d）：米色画布、青蓝强调、扁平按钮、灰底选中导航、150ms 颜色过渡
+  assert.match(css, /--canvas:\s*#f7f6f3/);
+  assert.match(css, /--accent:\s*#2eaadc/);
+  assert.match(css, /\.primary\s*\{\s*box-shadow:\s*none/);
+  assert.match(css, /\.secondary:hover\s*\{\s*background:\s*var\(--bg-hover\)/);
+  assert.match(css, /\.sidebar nav button\.active, \.sidebar nav \.nav-direct\.active\s*\{\s*color:\s*var\(--ink\);\s*background:\s*var\(--nav-2\)/);
+  assert.match(css, /transition-duration:\s*\.15s/);
   assert.match(app, /function actionMenu\(content\)/);
   assert.match(app, /popover="auto"/);
   assert.doesNotMatch(app, /<details class="action-menu">/);

@@ -1,58 +1,57 @@
-/* 深色主题令牌与组件补丁（Phase 2c）。由顶栏 ◐ 按钮切换 html[data-theme='dark']，偏好存 localStorage 'arenode-theme'。 */
-/* 原则：只覆写令牌与少数硬编码遗留；登录页深色品牌区、启动页、蓝色详情头图在两套主题下保持一致。 */
+/* 深色主题令牌与组件补丁（Phase 2c/2d：Notion 深色）。由顶栏 ◐ 按钮切换 html[data-theme='dark']，偏好存 localStorage 'arenode-theme'。 */
+/* 原则：只覆写令牌与少数硬编码遗留；Notion 深色以 #191919 底 + #202020 面板 + 微亮灰 hover 构成层级。 */
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --ink: #e6edf7;
-  --muted: #8494ab;
-  --line: #263344;
-  --canvas: #0d141e;
-  --panel: #141e2c;
-  --nav: #141e2c;
-  --nav-2: rgba(77, 141, 255, .14);
-  --accent: #4d8dff;
-  --accent-dark: #3d7bef;
-  --blue: #6ba3ff;
-  --green: #2dd4a7;
-  --amber: #f5b942;
-  --rose: #ff7b8c;
-  --danger: #ff6b6b;
-  --shadow: 0 14px 36px rgba(0, 0, 0, .45);
-  --heading: #eef3fa;
-  --text-2: #a9b8cc;
-  --text-3: #7d8ea6;
-  --line-strong: #35455c;
-  --bg-subtle: #182436;
-  --bg-hover: #1d2a3f;
-  --bg-accent-soft: rgba(77, 141, 255, .16);
-  --pill-bg: rgba(20, 30, 44, .85);
-  --topbar-bg: rgba(13, 20, 30, .88);
-  --green-ink: #3fd9a9;
-  --green-bg: rgba(45, 212, 167, .12);
-  --amber-ink: #f5c15c;
-  --amber-bg: rgba(245, 185, 66, .13);
-  --rose-ink: #ff8a98;
-  --rose-bg: rgba(255, 123, 140, .12);
-  --gray-bg: rgba(132, 148, 171, .14);
-  --accent-line: #2d4a75;
-  --chart-grid: #24334a;
-  --chart-label: #7d8ea6;
-  --chart-fill-from: rgba(77, 141, 255, .28);
-  --chart-fill-to: rgba(77, 141, 255, 0);
-  --hero-grad-from: #1a2940;
-  --hero-grad-to: #14202f;
-  --banner-grad-from: #141e2c;
-  --banner-grad-to: #182436;
+  --ink: #d4d4d2;
+  --muted: #6f6f6c;
+  --line: #2e2e2e;
+  --canvas: #191919;
+  --panel: #202020;
+  --nav: #191919;
+  --nav-2: #2c2c2c;
+  --accent: #2eaadc;
+  --accent-dark: #4db9e2;
+  --blue: #5cc0e4;
+  --green: #2da08e;
+  --amber: #e4bc42;
+  --rose: #f27777;
+  --danger: #f27777;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-lg: 0 4px 14px rgba(0, 0, 0, .5);
+  --heading: #e8e8e6;
+  --text-2: #a6a6a3;
+  --text-3: #6f6f6c;
+  --line-strong: #43433f;
+  --bg-subtle: #202020;
+  --bg-hover: #2c2c2c;
+  --bg-active: #373737;
+  --bg-accent-soft: rgba(46, 170, 220, .16);
+  --pill-bg: rgba(32, 32, 32, .85);
+  --topbar-bg: rgba(25, 25, 25, .88);
+  --green-ink: #3bb4a0;
+  --green-bg: rgba(15, 123, 108, .28);
+  --amber-ink: #e4bc42;
+  --amber-bg: rgba(223, 171, 1, .2);
+  --rose-ink: #f27777;
+  --rose-bg: rgba(235, 87, 87, .2);
+  --gray-bg: rgba(255, 255, 255, .06);
+  --accent-line: #1f5a6e;
+  --chart-grid: #2e2e2e;
+  --chart-label: #6f6f6c;
+  --chart-fill-from: rgba(46, 170, 220, .25);
+  --chart-fill-to: rgba(46, 170, 220, 0);
+  --hero-grad-from: #202020;
+  --hero-grad-to: #202020;
+  --banner-grad-from: #202020;
+  --banner-grad-to: #202020;
 }
 
 /* 组件补丁：覆盖无法令牌化的硬编码遗留 */
-[data-theme='dark'] .topbar { border-bottom-color: #1c2836; }
+[data-theme='dark'] .topbar { border-bottom-color: var(--line); }
 [data-theme='dark'] .sidebar nav::-webkit-scrollbar-thumb { background: var(--line-strong); }
-[data-theme='dark'] .sidebar { border-right-color: #1c2836; }
+[data-theme='dark'] .sidebar { border-right-color: var(--line); }
 [data-theme='dark'] dialog { color: var(--ink); background: var(--panel); }
-[data-theme='dark'] .page-hero { border-color: #28405e; box-shadow: var(--shadow); }
-[data-theme='dark'] .stream-detail-hero { border-color: #2b66b8; background: #1f4e94; }
-[data-theme='dark'] .boot-splash { background: #0b1a1d; }
 
 /* 主题切换按钮（两种主题通用的呈现） */
 .theme-toggle { width: 32px; height: 32px; font-size: 15px; }

@@ -1,0 +1,62 @@
+/* Notion 风格签名层（Phase 2d 全量换肤，最后加载）。令牌在 theme.css（浅）/dark.css（深），本层做组件签名与规范归一： */
+/* 无渐变、无重阴影、无 translate/scale 动画、圆角 ≤8px、过渡仅 150ms 颜色、hover 浅灰 --bg-hover、active 加深 --bg-active。 */
+
+/* ===== 按钮：扁平、只变色、无浮起 ===== */
+.primary { box-shadow: none; background: var(--accent); transition: background-color .15s ease-out; }
+.primary:hover { background: var(--accent-dark); }
+.primary:active { background: color-mix(in srgb, var(--accent-dark) 88%, black); }
+.secondary { box-shadow: none; transition: background-color .15s ease-out, color .15s ease-out, border-color .15s ease-out; }
+.secondary:hover { background: var(--bg-hover); }
+.secondary:active { background: var(--bg-active); }
+.danger-button { box-shadow: none; transition: background-color .15s ease-out; }
+.danger-button:hover { background: color-mix(in srgb, var(--danger) 88%, black); }
+.text-button, .icon-button { transition: background-color .15s ease-out, color .15s ease-out, border-color .15s ease-out; }
+.icon-button:hover { background: var(--bg-hover); }
+.manage-button { color: var(--accent-dark) !important; border-color: var(--accent-line) !important; background: var(--bg-accent-soft) !important; }
+
+/* ===== 侧栏导航：选中=灰底黑字（Notion 页面态），hover 浅灰 ===== */
+.sidebar nav button { transition: background-color .15s ease-out, color .15s ease-out; }
+.sidebar nav button.active, .sidebar nav .nav-direct.active { color: var(--ink); background: var(--nav-2); }
+.sidebar nav button.active .nav-icon, .nav-cluster.active-parent > .nav-parent .nav-icon { color: var(--ink); }
+.sidebar nav button.active::after { background: var(--text-3); }
+.sidebar nav .nav-children button.active { color: var(--ink); background: var(--nav-2); }
+.sidebar nav .nav-children button.active > span { background: var(--text-3); box-shadow: none; }
+
+/* ===== 表格：表头透明底 + 发线分隔；行 hover 浅灰（--bg-hover 令牌） ===== */
+th { background: transparent; }
+
+/* ===== 输入：Notion 式聚焦环 ===== */
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* ===== 交互过渡统一为 150ms 颜色过渡（禁位移动画） ===== */
+button, a, input, select, textarea { transition-duration: .15s; transition-timing-function: ease-out; }
+
+/* ===== 圆角归一（规范禁止 rounded-2xl 及更大） ===== */
+.hero-copy > small { border-radius: 6px; color: var(--accent-dark); }
+.hero-copy .banner-icon { border-radius: 8px; border-color: var(--accent-line); }
+.hero-copy p { color: var(--text-3); }
+.detail-workspace-head > div:last-child span { border-radius: 6px; }
+
+/* ===== 字重与字体：Notion 用半粗无衬线，弃用衬线数字 ===== */
+.metric strong { font-family: inherit; font-weight: 700; }
+.login-brand h1 { font-family: inherit; font-weight: 700; color: var(--ink); }
+
+/* ===== 四层转发详情头图：蓝色实心改为扁平面板 ===== */
+.stream-detail-hero { color: var(--ink); border: 1px solid var(--line); background: var(--panel); }
+.stream-detail-hero h3 { color: var(--ink); }
+.stream-detail-hero p span { color: var(--text-2); background: var(--gray-bg); }
+.stream-detail-hero .badge { color: var(--amber-ink); background: var(--amber-bg); }
+
+/* ===== 登录页与启动页：米白极简 ===== */
+.boot-splash { color: var(--text-3); background: var(--canvas); }
+.login-brand { color: var(--ink); background: var(--canvas); border-right: 1px solid var(--line); }
+.login-brand .eyebrow { color: var(--accent); }
+.login-copy { color: var(--text-2); }
+.trust-line { color: var(--text-3); }
+.trust-line span { background: var(--green); box-shadow: 0 0 0 5px color-mix(in srgb, var(--green) 12%, transparent); }
+.brand-mark { border-color: var(--line-strong); }
+.brand-mark span { border-color: var(--accent); }
+.login-panel { background: var(--panel); }
+.login-form h2 { color: var(--ink); }
+.mobile-brand { color: var(--ink); }
+.mobile-brand .brand-mark { border-color: var(--line-strong); }
