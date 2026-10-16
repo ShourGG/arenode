@@ -165,6 +165,17 @@ dialog .repeater-head { margin: 0 0 12px; }
 .nav-search { margin: 4px 12px 12px; }
 #auditTable td:last-child { white-space: normal; max-width: 420px; overflow-wrap: anywhere; }
 
+/* --- 灾后恢复/找回：表单贴边、按钮换行拉伸、面板贴死修复 --- */
+#recoveryClaimForm, #recoveryImportForm { padding: 16px; }
+#recoveryImportForm { width: 100%; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; align-items: end; gap: 12px; }
+#recoveryImportForm label { margin-bottom: 0; }
+#recoveryImportForm button { min-height: 40px; }
+#recoveryClaimResult { margin: 0 16px; }
+#recoveryVerifyButton { margin: 0 16px 16px; }
+#recoveryClaimHint { margin: 0 16px 16px; }
+#recovery-admin .panel + .panel { margin-top: 16px; }
+.status-text:empty { display: none; }
+
 /* --- 响应式补齐 --- */
 @media (max-width: 1024px) {
   .wallet-summary { grid-template-columns: 1fr 1fr; }
@@ -173,4 +184,5 @@ dialog .repeater-head { margin: 0 0 12px; }
 @media (max-width: 768px) {
   .site-config-tabs { top: 56px; }
   .monitor-rail button { min-height: 64px; }
+  #recoveryImportForm { grid-template-columns: 1fr; }
 }
