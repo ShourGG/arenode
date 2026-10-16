@@ -214,19 +214,19 @@ dialog .repeater-head { margin: 0 0 12px; }
 .login-form > .eyebrow { margin: 0 0 16px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
 .login-form > h2 { margin: 0 0 14px; font-size: clamp(38px, 4.4vw, 56px); line-height: 1.06; letter-spacing: -.02em; }
 .login-form > .muted { margin: 0 0 36px; font-size: 15px; }
+/* 右栏不铺实心底色、不画左边框：让外壳的流动渐变连续穿过中间，两块 accent 柔光淡出到透明 */
 .login-art {
-  position: relative; overflow: hidden; border-left: 1px solid var(--line);
+  position: relative; overflow: hidden;
   background:
     radial-gradient(46% 40% at 30% 28%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
-    radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%),
-    var(--panel);
+    radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%);
   background-repeat: no-repeat;
   animation: art-gradient 16s ease-in-out infinite alternate;
 }
 /* 背景极光渐变：两块 accent 柔光缓慢对流 */
 @keyframes art-gradient {
-  from { background-position: -4% -3%, 0% 0%, 0 0; }
-  to { background-position: 5% 6%, -5% -7%, 0 0; }
+  from { background-position: -4% -3%, 0% 0%; }
+  to { background-position: 5% 6%, -5% -7%; }
 }
 .login-art .art-dots {
   position: absolute; inset: 0;
