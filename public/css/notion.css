@@ -60,3 +60,117 @@ button, a, input, select, textarea { transition-duration: .15s; transition-timin
 .login-form h2 { color: var(--ink); }
 .mobile-brand { color: var(--ink); }
 .mobile-brand .brand-mark { border-color: var(--line-strong); }
+
+/* ===== 间距系统归一（Phase 2e）：标尺 4/8/12/16/20/24，面板内左缘对齐 16px，控件高度统一 40px ===== */
+
+/* --- 全局节奏 --- */
+label { margin-bottom: 16px; }
+.metrics { margin-bottom: 16px; }
+.ops-summary { gap: 12px; margin-bottom: 16px; }
+.ops-summary > div { padding: 12px 16px; }
+.section-head:not(.compact), .section-head.compact { margin-bottom: 16px; }
+.admin-welcome, .admin-hero { margin-bottom: 16px; }
+.view-error { margin-bottom: 16px; }
+#billing > .quota-warning { margin-top: 16px; }
+
+/* --- 面板内左缘对齐（条状区横向 padding 统一 16px） --- */
+.panel-head { padding: 12px 16px; }
+.pager { padding: 10px 16px; }
+.subsection-head { min-height: 48px; padding: 10px 16px; }
+.resource-kind-tabs { padding: 12px 16px 0; }
+.resource-kind-tabs button, .resource-subtabs button { padding: 0 12px; }
+.resource-tabs { gap: 8px; margin-bottom: 16px; }
+
+/* --- 控件高度统一 40px（消除同排高矮差） --- */
+.email-code-row { gap: 12px; }
+.email-code-row .secondary { min-height: 40px; }
+.wallet-recharge { gap: 8px; }
+.wallet-recharge button { min-height: 40px; }
+#upstreamPackageDialog select { min-height: 40px; }
+.password-row .icon-button { width: 40px; height: 40px; }
+.filter-toolbar > button { min-height: 40px; }
+.report-filters { align-items: center; }
+.monitor-main .query-grid input, .monitor-main .query-grid select { height: 40px; min-height: 40px; }
+
+/* --- workbench 节奏 --- */
+.workbench-layout { gap: 16px; }
+.monitor-workbench, .monitor-chart-grid, .monitor-main { gap: 16px; }
+.site-action-toolbar, .resource-action-toolbar, .stream-action-toolbar { min-height: 56px; }
+.workbench-rail button { min-height: 64px; }
+
+/* --- 规则构建器 --- */
+.rule-row, .acl-rule { padding: 12px; gap: 12px; }
+.rule-row.acl-condition { padding: 8px; }
+.rule-row .icon-button { margin-bottom: 0; }
+.rule-builder { gap: 12px; }
+
+/* --- 监控区 --- */
+.chart-wrap { padding: 16px 18px 18px; }
+.monitor-summary { padding: 12px 18px 18px; }
+.monitor-summary > div { min-height: 56px; }
+.preset-range-buttons { gap: 4px; }
+.health-summary { padding: 8px 18px; }
+.health-summary > div { padding: 16px; }
+.config-editor { padding: 20px; gap: 0 16px; }
+.config-editor > .switch-inline { margin-bottom: 16px; }
+
+/* --- 站点详情 --- */
+.site-config-tabs { top: 56px; }
+.view.loading::before { top: 56px; }
+.site-config-heading { min-height: 64px; padding: 16px 20px; }
+.detail-form-grid { padding: 20px; gap: 0 16px; }
+.site-config-form .detail-form-grid { row-gap: 16px; }
+.config-subsection > h4, .subsection-title { padding: 16px 20px 0; }
+.config-subsection > .detail-rule-builder { padding: 12px 20px 20px; }
+.site-config-form > .sticky-actions { margin: 16px; }
+.sticky-actions { padding: 12px 16px; }
+
+/* --- 客户计费页：修复面板贴死（0px）与首屏双缝（30px），统一 16px 单轨 --- */
+#billing > .section-head { margin-bottom: 0; }
+#billing > .tenant-billing-pane { margin-top: 16px; }
+.wallet-hero { min-height: 0; gap: 24px; padding: 20px 24px; }
+.subscription-cards { gap: 16px; }
+.subscription-card { display: flex; flex-direction: column; padding: 16px; }
+.subscription-card dl { gap: 8px 12px; }
+.subscription-card footer { margin-top: auto; padding-top: 12px; }
+.redeem-panel { padding: 20px 24px; }
+.wallet-summary > div { padding: 12px 16px; }
+.quota-item { padding: 24px; }
+.recovery-record-row code { padding: 8px; }
+
+/* --- 账户与设置 --- */
+.account-form label { margin-bottom: 16px; }
+.settings-grid { gap: 4px 20px; padding: 20px; }
+.profile-hero { min-height: 0; padding: 20px 24px; }
+.health-service > p { margin: 16px 0; }
+.switch-setting { padding: 12px 16px; }
+
+/* --- 对话框 --- */
+dialog form { padding: 24px; }
+dialog .dialog-actions { gap: 8px; margin-top: 8px; }
+.form-grid { gap: 0 16px; }
+dialog .switch-list { margin: 0 0 16px; border-radius: 6px; }
+dialog .check-list label, dialog .switch-list label { padding: 12px; }
+dialog .repeater-head { margin: 0 0 12px; }
+
+/* --- 卡片与小件 --- */
+.record-list { gap: 8px; }
+.record-item { padding: 12px 16px; }
+.report-grid > div { padding: 16px; }
+.plan-change-quote > div { padding: 12px; }
+.empty { padding: 52px 20px; }
+.ops-summary strong, .wallet-summary > div strong { font-size: 20px; }
+#auditAction { min-width: 220px; }
+.app-announcement, .public-announcement { padding: 12px 16px; }
+.nav-search { margin: 4px 12px 12px; }
+#auditTable td:last-child { white-space: normal; max-width: 420px; overflow-wrap: anywhere; }
+
+/* --- 响应式补齐 --- */
+@media (max-width: 1024px) {
+  .wallet-summary { grid-template-columns: 1fr 1fr; }
+  .wallet-summary > p { grid-column: 1 / -1; }
+}
+@media (max-width: 768px) {
+  .site-config-tabs { top: 56px; }
+  .monitor-rail button { min-height: 64px; }
+}

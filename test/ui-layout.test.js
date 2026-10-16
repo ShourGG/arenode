@@ -67,6 +67,16 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.secondary:hover\s*\{\s*background:\s*var\(--bg-hover\)/);
   assert.match(css, /\.sidebar nav button\.active, \.sidebar nav \.nav-direct\.active\s*\{\s*color:\s*var\(--ink\);\s*background:\s*var\(--nav-2\)/);
   assert.match(css, /transition-duration:\s*\.15s/);
+  // 间距系统契约（Phase 2e）：4px 标尺、面板内左缘 16px 对齐、控件高度统一 40px、billing 页 16px 单轨节奏、sticky 跟随 56px 顶栏
+  assert.match(css, /label\s*\{\s*margin-bottom:\s*16px/);
+  assert.match(css, /\.panel-head\s*\{\s*padding:\s*12px 16px/);
+  assert.match(css, /\.subsection-head\s*\{\s*min-height:\s*48px/);
+  assert.match(css, /\.filter-toolbar > button\s*\{\s*min-height:\s*40px/);
+  assert.match(css, /\.site-config-tabs\s*\{\s*top:\s*56px/);
+  assert.match(css, /#billing > \.section-head\s*\{\s*margin-bottom:\s*0/);
+  assert.match(css, /#billing > \.tenant-billing-pane\s*\{\s*margin-top:\s*16px/);
+  assert.match(css, /\.workbench-layout\s*\{\s*gap:\s*16px/);
+  assert.match(css, /dialog \.dialog-actions\s*\{\s*gap:\s*8px;\s*margin-top:\s*8px/);
   assert.match(app, /function actionMenu\(content\)/);
   assert.match(app, /popover="auto"/);
   assert.doesNotMatch(app, /<details class="action-menu">/);
@@ -192,7 +202,7 @@ test('浏览器原生提示框已替换为站内 API Key 弹窗', () => {
 });
 
 test('网站详情双栏控件保持固定高度并按顶部对齐', () => {
-  assert.match(css, /\.site-config-form \.detail-form-grid \{[^}]*row-gap: 18px/);
+  assert.match(css, /\.site-config-form \.detail-form-grid \{[^}]*row-gap: 16px/);
   assert.match(css, /\.site-config-form \.detail-form-grid > label \{[^}]*align-self: start;[^}]*align-content: start;[^}]*margin-bottom: 0/);
   assert.match(css, /\.site-config-form \.detail-form-grid > label > input:not\(\[type="checkbox"\]\),\.site-config-form \.detail-form-grid > label > select \{[^}]*height: 40px;[^}]*min-height: 40px/);
   assert.match(html, /匹配内容<textarea name="hotlinkScopeContent" rows="4"/);
@@ -221,7 +231,7 @@ test('监控快捷范围使用带标题且等高的分段按钮组', () => {
   assert.match(html, /<fieldset class="preset-range"><legend>快捷范围<\/legend><div class="preset-range-buttons">/);
   assert.match(css, /\.preset-range button \{[^}]*min-height: 40px/);
   assert.match(css, /\.preset-range-buttons \{[^}]*display: flex;[^}]*align-items: stretch/);
-  assert.match(css, /\.monitor-main \.query-grid input, \.monitor-main \.query-grid select \{[^}]*height: 44px;[^}]*min-height: 44px/);
+  assert.match(css, /\.monitor-main \.query-grid input, \.monitor-main \.query-grid select \{[^}]*height: 40px;[^}]*min-height: 40px/);
   assert.match(css, /\.monitor-main #monitorForm > \.preset-range \{[^}]*grid-column: 1 \/ span 4/);
   assert.match(css, /\.monitor-main #monitorForm > button\[type="submit"\] \{[^}]*grid-column: 5/);
   assert.match(html, /data-monitor-minutes="10"/);
