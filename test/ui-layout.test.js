@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // styles.css 已按层拆分为 public/css/*.css（Phase 2a），测试按 link 顺序拼接后断言
-const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console'];
+const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console', 'dark'];
 const css = cssLayers.map(name => fs.readFileSync(new URL(`../public/css/${name}.css`, import.meta.url), 'utf8')).join('\n');
 const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 // app.js 已拆分为入口 + public/js/** 模块；测试按模块拼接后断言，保持与旧单文件一致
@@ -52,6 +52,14 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.app-shell\.nav-collapsed\s*\{\s*--sidebar-w:\s*64px/);
   assert.match(css, /\.app-shell\.nav-collapsed\s+\.nav-cluster:hover\s+\.nav-children/);
   assert.match(app, /localStorage\.setItem\('arenode-nav-collapsed'/);
+  // 深浅色双主题契约：dark 层覆写令牌，顶栏切换按钮，偏好持久化，首屏内联脚本防闪烁
+  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--canvas:\s*#0d141e/);
+  assert.match(css, /\[data-theme='dark'\]\s*\{[^}]*--panel:\s*#141e2c/);
+  assert.match(html, /id="themeToggle"/);
+  assert.match(html, /<meta name="color-scheme" content="light dark">/);
+  assert.match(html, /localStorage\.getItem\('arenode-theme'\)/);
+  assert.match(app, /localStorage\.setItem\('arenode-theme'/);
+  assert.match(app, /arenode:themechange/);
   assert.match(app, /function actionMenu\(content\)/);
   assert.match(app, /popover="auto"/);
   assert.doesNotMatch(app, /<details class="action-menu">/);

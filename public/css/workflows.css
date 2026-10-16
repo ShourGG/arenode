@@ -2,15 +2,15 @@
 /* 由 styles.css 按层切分（Phase 2a），层叠顺序与原文件一致，视觉不应变化。 */
 
 /* Account, finance and announcement workflows */
-.public-announcement { position: absolute; top: 24px; width: min(400px, calc(100% - 40px)); padding: 13px 15px; border: 1px solid #cfe0f5; border-radius: 7px; background: #f5f9ff; }
+.public-announcement { position: absolute; top: 24px; width: min(400px, calc(100% - 40px)); padding: 13px 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg-subtle); }
 .login-panel { position: relative; }
-.public-announcement strong, .app-announcement strong { display: block; color: #263650; font-size: 13px; }
-.public-announcement p, .app-announcement p { margin: 4px 0 0; color: #66758a; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
-.app-announcement { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 12px 15px; border: 1px solid #cfe0f5; border-radius: 7px; background: #f5f9ff; }
-.announcement-info { border-color: #cfe0f5; background: #f5f9ff; }.announcement-success { border-color: #cde9dc; background: #f1fbf6; }.announcement-warning { border-color: #f1dbad; background: #fff9ec; }.announcement-critical { border-color: #efc8c8; background: #fff5f5; }
+.public-announcement strong, .app-announcement strong { display: block; color: var(--ink); font-size: 13px; }
+.public-announcement p, .app-announcement p { margin: 4px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
+.app-announcement { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 12px 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg-subtle); }
+.announcement-info { border-color: var(--line); background: var(--bg-subtle); }.announcement-success { border-color: #cde9dc; background: #f1fbf6; }.announcement-warning { border-color: #f1dbad; background: #fff9ec; }.announcement-critical { border-color: #efc8c8; background: #fff5f5; }
 .announcement-dialog-body { min-height: 100px; color: #44536a; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
-.announcement-preview { min-height: 86px; padding: 14px 16px; border: 1px solid #cfe0f5; border-radius: 7px; }
-.announcement-preview strong { color: #263650; font-size: 13px; }.announcement-preview p { margin: 6px 0 0; color: #66758a; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+.announcement-preview { min-height: 86px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 7px; }
+.announcement-preview strong { color: var(--ink); font-size: 13px; }.announcement-preview p { margin: 6px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
 
 .wallet-summary { min-width: 0; flex: 1; display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 10px; }
 .wallet-summary > div { min-width: 0; padding: 13px 14px; border: 1px solid #d4ebe4; border-radius: 7px; background: rgba(255,255,255,.62); }
@@ -56,7 +56,7 @@
   table tr { display: grid; gap: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); }
   table tr:last-child { border-bottom: 0; }
   table td { min-width: 0; display: grid; grid-template-columns: minmax(86px, 34%) minmax(0, 1fr); gap: 12px; padding: 8px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
-  table td::before { content: attr(data-label); color: #8a98ad; font-size: 10px; font-weight: 700; text-align: left; }
+  table td::before { content: attr(data-label); color: var(--text-3); font-size: 10px; font-weight: 700; text-align: left; }
   table td > strong, table td > small, table td > span { justify-self: end; }
   table td small { display: block; }
   table td.right { display: block; padding-top: 10px; }

@@ -59,10 +59,10 @@ th, td { padding: 12px 16px; }
 .monitor-summary span { color: var(--muted); font-size: 11px; }
 .monitor-summary strong { color: var(--ink); font-size: 15px; }
 .preset-range { min-width: max-content; display: grid; align-self: end; gap: 8px; margin: 0; padding: 0; border: 0; }
-.preset-range legend { padding: 0; color: #32404a; font-size: 13px; font-weight: 700; }
+.preset-range legend { padding: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
 .preset-range-buttons { display: flex; align-items: stretch; gap: 5px; }
-.preset-range button { min-height: 44px; padding: 0 9px; color: #667892; border: 1px solid #d9e4f2; border-radius: 5px; background: #fff; font-size: 11px; white-space: nowrap; }
-.preset-range button.active, .preset-range button:hover { color: #1677ff; border-color: #9ec4ff; background: #f3f8ff; }
+.preset-range button { min-height: 44px; padding: 0 9px; color: #667892; border: 1px solid #d9e4f2; border-radius: 5px; background: var(--panel); font-size: 11px; white-space: nowrap; }
+.preset-range button.active, .preset-range button:hover { color: var(--accent); border-color: #9ec4ff; background: var(--bg-subtle); }
 .access-log-table { min-width: 2860px; }
 .access-log-table th, .access-log-table td { white-space: nowrap; }
 .access-log-table .access-uri { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
@@ -71,10 +71,10 @@ th, td { padding: 12px 16px; }
 .request-method, .http-status { display: inline-flex; min-width: 42px; justify-content: center; padding: 3px 7px; border-radius: 4px; font-size: 11px; font-weight: 750; }
 .request-method { color: #3b5e91; background: #edf4ff; }
 .request-method-post, .request-method-put, .request-method-patch { color: #7c5a19; background: #fff6df; }
-.request-method-delete { color: #a33f47; background: #fff0f1; }
+.request-method-delete { color: #a33f47; background: var(--rose-bg); }
 .http-status.status-success { color: #127253; background: #e9f7f1; }
-.http-status.status-warning { color: #9b6619; background: #fff5df; }
-.http-status.status-error { color: #b4414c; background: #fff0f1; }
+.http-status.status-warning { color: #9b6619; background: var(--amber-bg); }
+.http-status.status-error { color: #b4414c; background: var(--rose-bg); }
 #userConfigValueMount { display: block; }
 #userConfigValueMount > input, #userConfigValueMount > select, #userConfigValueMount > textarea { width: 100%; }
 #userConfigValueMount > textarea { min-height: 96px; resize: vertical; }

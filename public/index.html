@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
+  <script>try { document.documentElement.dataset.theme = localStorage.getItem('arenode-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (error) {}</script>
   <title>Arenode 控制台</title>
   <link rel="stylesheet" href="/css/base.css?v=recovery1">
   <link rel="stylesheet" href="/css/theme.css?v=recovery1">
@@ -12,6 +13,7 @@
   <link rel="stylesheet" href="/css/commercial.css?v=recovery1">
   <link rel="stylesheet" href="/css/workflows.css?v=recovery1">
   <link rel="stylesheet" href="/css/console.css?v=recovery1">
+  <link rel="stylesheet" href="/css/dark.css?v=recovery1">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -169,7 +171,7 @@
       <header class="topbar">
         <button id="menuButton" class="icon-button menu-button" aria-label="打开菜单">☰</button>
         <div class="topbar-title"><p id="breadcrumb" class="eyebrow">站点运营 / 控制台</p><h2 id="pageTitle">运行概览</h2></div>
-        <div class="topbar-meta"><div class="top-status"><small>服务状态</small><strong id="apiStatus" class="pending"><i></i>检测中</strong></div><div class="top-clock"><small>系统时间</small><strong id="systemClock">--:--:--</strong></div><div class="account"><span id="accountInitial">U</span><div><strong id="accountName">user</strong><small id="accountRole">用户</small></div></div></div>
+        <div class="topbar-meta"><button id="themeToggle" class="icon-button theme-toggle" type="button" aria-label="切换深浅色主题" title="切换深浅色主题">◐</button><div class="top-status"><small>服务状态</small><strong id="apiStatus" class="pending"><i></i>检测中</strong></div><div class="top-clock"><small>系统时间</small><strong id="systemClock">--:--:--</strong></div><div class="account"><span id="accountInitial">U</span><div><strong id="accountName">user</strong><small id="accountRole">用户</small></div></div></div>
       </header>
 
       <main class="content">

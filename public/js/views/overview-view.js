@@ -52,6 +52,11 @@ export function renderOverview() {
 
 export const collectTrafficPoints = collectMonitorPoints;
 
+// 画布无法使用 CSS 变量，改由 getComputedStyle 读取当前主题令牌
+const themeValue = (name, fallback) => {
+  try { const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return value || fallback; } catch { return fallback; }
+};
+
 export function drawTrafficChart(canvasSelector, emptySelector, sourcePoints = state.trafficPoints) {
   const canvas = $(canvasSelector); if (!canvas) return;
   const rect = canvas.getBoundingClientRect(); if (!rect.width || !rect.height) return;
@@ -61,7 +66,7 @@ export function drawTrafficChart(canvasSelector, emptySelector, sourcePoints = s
   context.clearRect(0, 0, width, height); context.font = '11px system-ui, sans-serif'; context.lineWidth = 1;
   for (let index = 0; index <= 4; index += 1) {
     const y = pad.top + (height - pad.top - pad.bottom) * index / 4;
-    context.strokeStyle = '#e8eef6'; context.setLineDash([4, 4]); context.beginPath(); context.moveTo(pad.left, y); context.lineTo(width - pad.right, y); context.stroke();
+    context.strokeStyle = themeValue('--chart-grid', '#e8eef6'); context.setLineDash([4, 4]); context.beginPath(); context.moveTo(pad.left, y); context.lineTo(width - pad.right, y); context.stroke();
   }
   const points = sourcePoints.filter(point => Number.isFinite(point.value)); $(emptySelector).classList.toggle('hidden', points.length !== 0);
   if (!points.length) return;
@@ -73,14 +78,14 @@ export function drawTrafficChart(canvasSelector, emptySelector, sourcePoints = s
     if (monitorMetric.includes('resp-time')) return `${(value * 1000).toLocaleString('zh-CN', { maximumFractionDigits: 1 })} ms`;
     return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
   };
-  context.fillStyle = '#8c9ab0'; context.textAlign = 'right';
+  context.fillStyle = themeValue('--chart-label', '#8c9ab0'); context.textAlign = 'right';
   for (let index = 0; index <= 4; index += 1) context.fillText(axisValue(maximum * (4 - index) / 4), pad.left - 9, pad.top + (height - pad.top - pad.bottom) * index / 4 + 4);
   const innerWidth = width - pad.left - pad.right; const innerHeight = height - pad.top - pad.bottom;
   const coords = points.map((point, index) => ({ x: pad.left + (points.length === 1 ? innerWidth / 2 : innerWidth * index / (points.length - 1)), y: pad.top + innerHeight * (1 - point.value / maximum), point }));
-  const gradient = context.createLinearGradient(0, pad.top, 0, height - pad.bottom); gradient.addColorStop(0, 'rgba(22,119,255,.22)'); gradient.addColorStop(1, 'rgba(22,119,255,0)');
+  const gradient = context.createLinearGradient(0, pad.top, 0, height - pad.bottom); gradient.addColorStop(0, themeValue('--chart-fill-from', 'rgba(22,119,255,.22)')); gradient.addColorStop(1, themeValue('--chart-fill-to', 'rgba(22,119,255,0)'));
   context.beginPath(); context.moveTo(coords[0].x, height - pad.bottom); coords.forEach(item => context.lineTo(item.x, item.y)); context.lineTo(coords.at(-1).x, height - pad.bottom); context.closePath(); context.fillStyle = gradient; context.fill();
-  context.beginPath(); coords.forEach((item, index) => index ? context.lineTo(item.x, item.y) : context.moveTo(item.x, item.y)); context.strokeStyle = '#1677ff'; context.lineWidth = 2; context.stroke();
-  context.fillStyle = '#718097'; context.textAlign = 'center'; const labels = [coords[0], coords[Math.floor((coords.length - 1) / 2)], coords.at(-1)];
+  context.beginPath(); coords.forEach((item, index) => index ? context.lineTo(item.x, item.y) : context.moveTo(item.x, item.y)); context.strokeStyle = themeValue('--accent', '#1677ff'); context.lineWidth = 2; context.stroke();
+  context.fillStyle = themeValue('--chart-label', '#718097'); context.textAlign = 'center'; const labels = [coords[0], coords[Math.floor((coords.length - 1) / 2)], coords.at(-1)];
   for (const item of labels) context.fillText(formatMonitorChartLabel(item.point.label), item.x, height - 10);
 }
 
@@ -88,6 +93,11 @@ export function drawTrafficCharts() {
   drawTrafficChart('#trafficChart', '#chartEmpty');
   drawTrafficChart('#dataOverviewChart', '#dataOverviewEmpty');
 }
+
+// 主题切换后按新令牌重绘画布图表
+window.addEventListener('arenode:themechange', () => {
+  if (['overview', 'tenant-dashboard'].includes(state.currentView)) drawTrafficCharts();
+});
 
 export async function loadOverviewData() {
   if (!state.me || state.me.user.role !== 'user') return;

@@ -74,6 +74,18 @@ $('#menuButton').addEventListener('click', () => {
 });
 try { if (localStorage.getItem('arenode-nav-collapsed') === '1') $('#appView').classList.add('nav-collapsed'); } catch {}
 
+// 深浅色主题切换：初始值由 <head> 内联脚本写入 html[data-theme]，这里同步图标并处理点击
+const themeToggle = $('#themeToggle');
+const syncThemeIcon = () => { if (themeToggle) themeToggle.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '◐'; };
+themeToggle?.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('arenode-theme', next); } catch {}
+  syncThemeIcon();
+  window.dispatchEvent(new CustomEvent('arenode:themechange'));
+});
+syncThemeIcon();
+
 function updateSystemClock() {
   $('#systemClock').textContent = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
 }
