@@ -2,7 +2,7 @@
 /* 由 styles.css 按层切分（Phase 2a），层叠顺序与原文件一致，视觉不应变化。 */
 
 /* Commercial workflows and responsive records */
-.danger-button { min-height: 42px; padding: 0 16px; color: white; border-radius: 7px; background: var(--danger); font-weight: 750; }
+.danger-button { min-height: 38px; padding: 0 16px; color: white; border-radius: 7px; background: var(--danger); font-weight: 750; }
 .danger-button:hover { background: #c83f3f; }
 .password-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; }
 .password-row input { min-width: 0; }
@@ -68,7 +68,7 @@
 .filter-toolbar > label:not(.search) { min-width: 150px; margin: 0; color: var(--muted); font-size: 10px; }
 .filter-toolbar > label:not(.search) input { min-height: 40px; margin-top: 4px; }
 .inline-filter { display: flex; align-items: center; gap: 8px; }
-.pager { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 18px; border-top: 1px solid var(--line); background: var(--bg-subtle); }
+.pager { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 18px; border-top: 1px solid var(--line); background: var(--bg-subtle); }
 .pager:empty { display: none; }
 .pager > span { color: var(--muted); font-size: 11px; }
 .pager > div { display: flex; gap: 8px; }

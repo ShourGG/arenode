@@ -61,7 +61,7 @@ th, td { padding: 12px 16px; }
 .preset-range { min-width: max-content; display: grid; align-self: end; gap: 8px; margin: 0; padding: 0; border: 0; }
 .preset-range legend { padding: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
 .preset-range-buttons { display: flex; align-items: stretch; gap: 5px; }
-.preset-range button { min-height: 44px; padding: 0 9px; color: #667892; border: 1px solid #d9e4f2; border-radius: 5px; background: var(--panel); font-size: 11px; white-space: nowrap; }
+.preset-range button { min-height: 40px; padding: 0 9px; color: var(--text-3); border: 1px solid var(--line); border-radius: 5px; background: var(--panel); font-size: 11px; white-space: nowrap; }
 .preset-range button.active, .preset-range button:hover { color: var(--accent); border-color: #9ec4ff; background: var(--bg-subtle); }
 .access-log-table { min-width: 2860px; }
 .access-log-table th, .access-log-table td { white-space: nowrap; }

@@ -13,7 +13,7 @@
 .announcement-preview strong { color: var(--ink); font-size: 13px; }.announcement-preview p { margin: 6px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
 
 .wallet-summary { min-width: 0; flex: 1; display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 10px; }
-.wallet-summary > div { min-width: 0; padding: 13px 14px; border: 1px solid #d4ebe4; border-radius: 7px; background: rgba(255,255,255,.62); }
+.wallet-summary > div { min-width: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--pill-bg); }
 .wallet-summary > div small { display: block; }.wallet-summary > div strong { margin: 5px 0 0; font-size: 23px; white-space: nowrap; }
 .wallet-summary > p { grid-column: 1 / -1; }
 

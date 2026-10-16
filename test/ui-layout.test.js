@@ -187,7 +187,7 @@ test('浏览器原生提示框已替换为站内 API Key 弹窗', () => {
 test('网站详情双栏控件保持固定高度并按顶部对齐', () => {
   assert.match(css, /\.site-config-form \.detail-form-grid \{[^}]*row-gap: 18px/);
   assert.match(css, /\.site-config-form \.detail-form-grid > label \{[^}]*align-self: start;[^}]*align-content: start;[^}]*margin-bottom: 0/);
-  assert.match(css, /\.site-config-form \.detail-form-grid > label > input:not\(\[type="checkbox"\]\),\.site-config-form \.detail-form-grid > label > select \{[^}]*height: 44px;[^}]*min-height: 44px/);
+  assert.match(css, /\.site-config-form \.detail-form-grid > label > input:not\(\[type="checkbox"\]\),\.site-config-form \.detail-form-grid > label > select \{[^}]*height: 40px;[^}]*min-height: 40px/);
   assert.match(html, /匹配内容<textarea name="hotlinkScopeContent" rows="4"/);
 });
 
@@ -212,7 +212,7 @@ test('回源 SSL 协议允许客户选择四个上游协议且关闭 HTTPS 不�
 
 test('监控快捷范围使用带标题且等高的分段按钮组', () => {
   assert.match(html, /<fieldset class="preset-range"><legend>快捷范围<\/legend><div class="preset-range-buttons">/);
-  assert.match(css, /\.preset-range button \{[^}]*min-height: 44px/);
+  assert.match(css, /\.preset-range button \{[^}]*min-height: 40px/);
   assert.match(css, /\.preset-range-buttons \{[^}]*display: flex;[^}]*align-items: stretch/);
   assert.match(css, /\.monitor-main \.query-grid input, \.monitor-main \.query-grid select \{[^}]*height: 44px;[^}]*min-height: 44px/);
   assert.match(css, /\.monitor-main #monitorForm > \.preset-range \{[^}]*grid-column: 1 \/ span 4/);
