@@ -786,6 +786,34 @@ test('完整网站接口固定普通用户套餐并翻译关联资源', async t 
   assert.equal(detailBody.group_id, null);
 });
 
+test('完整网站创建接口按订阅的 AI 策略注入规则', async t => {
+  const f = await fixture(); t.after(() => { f.server.close(); f.db.close(); });
+  const planId = Number(f.db.prepare(`INSERT INTO plans (code,name,price_cents,site_profile) VALUES ('ai-direct','AI Direct',100,'mixed_ai')`).run().lastInsertRowid);
+  const now = new Date(); const later = new Date(now.getTime() + 30 * 86400_000);
+  const subscriptionId = Number(f.db.prepare(`INSERT INTO subscriptions (user_id,plan_id,status,starts_at,ends_at) VALUES (?,?, 'active',?,?)`)
+    .run(f.ids.alice, planId, now.toISOString(), later.toISOString()).lastInsertRowid);
+  const subscription = f.db.prepare('SELECT s.*,p.site_profile FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.id=?').get(subscriptionId);
+  const billing = {
+    resolveSubscription: async () => subscription,
+    assertProjected: async () => true,
+    syncSitePorts: async () => true,
+  };
+
+  const result = await handleTenantProxy({
+    req: { method: 'POST' }, url: new URL('http://localhost/api/cdnfly/v1/sites'),
+    user: { id: f.ids.alice, role: 'user', site_limit: 5 }, db: f.db, cdnfly: f.cdnfly, upstreams: null, billing,
+    readBody: async () => ({ domain: 'mixed-ai.example.com', backend: [{ addr: '192.0.2.60' }], subscriptionId }),
+  });
+  assert.equal(result.status, 201);
+  const input = f.cdnfly.calls.findLast(call => call.method === 'POST' && call.path === '/v1/sites').body;
+  assert.equal(input.proxy_timeout, 600);
+  assert.equal(input.proxy_http_version, '1.1');
+  assert.equal(input.websocket_enable, 1);
+  assert.deepEqual(input.proxy_cache, []);
+  assert.ok(input.extra_cc_rule.some(rule => new RegExp(rule.matcher[0].value).test('/v1/messages')));
+  assert.equal(input.extra_cc_rule.some(rule => new RegExp(rule.matcher[0].value).test('/api/v1/auth/login')), false);
+});
+
 test('网站缓存单位按 CDNFly 短值保存并兼容旧长值', () => {
   const normalized = tenantProxyInternals.normalizeSiteWriteInput({
     proxy_cache: [

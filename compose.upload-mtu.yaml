@@ -1,0 +1,14 @@
+# Keep the application egress below the upstream path's packet-size limit.
+# The existing network still connects the application to PostgreSQL and Redis.
+services:
+  app:
+    networks:
+      default: {}
+      upload_egress:
+        gw_priority: 1
+
+networks:
+  upload_egress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1280"

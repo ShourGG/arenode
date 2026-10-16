@@ -301,7 +301,7 @@ test('兑换码原子发放套餐且不泄露完整码或允许同租户重复�
   const f = await fixture(); const base = await start(f); t.after(() => { f.server.close(); f.db.close(); });
   const admin = await login(base, 'admin', 'admin-password'); const alice = await login(base, 'alice', 'alice-password'); const bob = await login(base, 'bob', 'bobby-password');
   const plan = f.db.prepare("SELECT id FROM plans WHERE code='standard'").get();
-  f.db.prepare("UPDATE plans SET purchase_mode='once' WHERE id=?").run(plan.id);
+  f.db.prepare("UPDATE plans SET purchase_mode='once', destroy_collision_code=0 WHERE id=?").run(plan.id);
   const created = await request(base, '/api/admin/billing/redemption-codes', admin.cookie, 'POST', { type: 'plan', productId: plan.id, count: 2, maxUses: 2, label: '活动码' });
   assert.equal(created.status, 201); const generated = (await created.json()).codes; const code = generated[0].code;
   const list = await (await request(base, '/api/admin/billing/redemption-codes', admin.cookie)).json();
@@ -317,6 +317,55 @@ test('兑换码原子发放套餐且不泄露完整码或允许同租户重复�
   assert.equal(f.db.prepare('SELECT used_count FROM redemption_codes WHERE id=?').get(generated[0].id).used_count, 2);
   assert.equal(f.db.prepare('SELECT used_count FROM redemption_codes WHERE id=?').get(generated[1].id).used_count, 0);
   assert.equal(f.db.prepare("SELECT COUNT(*) AS count FROM orders WHERE channel='redemption' AND status='paid'").get().count, 2);
+});
+
+test('限购套餐重复兑换时拒绝发放并永久销毁撞车码', async t => {
+  const f = await fixture(); const base = await start(f); t.after(() => { f.server.close(); f.db.close(); });
+  const admin = await login(base, 'admin', 'admin-password'); const alice = await login(base, 'alice', 'alice-password'); const bob = await login(base, 'bob', 'bobby-password');
+  const plan = f.db.prepare("SELECT id FROM plans WHERE code='standard'").get();
+  f.db.prepare("UPDATE plans SET purchase_mode='once', destroy_collision_code=1 WHERE id=?").run(plan.id);
+  const created = await request(base, '/api/admin/billing/redemption-codes', admin.cookie, 'POST', {
+    type: 'plan', productId: plan.id, count: 2, maxUses: 1, label: '限购撞车测试',
+  });
+  assert.equal(created.status, 201); const codes = (await created.json()).codes;
+  assert.equal((await request(base, '/api/billing/redeem', alice.cookie, 'POST', { code: codes[0].code })).status, 200);
+
+  const collision = await request(base, '/api/billing/redeem', alice.cookie, 'POST', { code: codes[1].code });
+  assert.equal(collision.status, 409, await collision.clone().text());
+  const collisionBody = await collision.json();
+  assert.equal(collisionBody.codeDestroyed, true); assert.match(collisionBody.error, /撞车销毁/);
+
+  const destroyed = f.db.prepare('SELECT * FROM redemption_codes WHERE id=?').get(codes[1].id);
+  assert.equal(destroyed.status, 'destroyed'); assert.equal(destroyed.used_count, 0);
+  assert.equal(Number(destroyed.destroyed_by_user_id), f.ids.alice); assert.ok(destroyed.destroyed_at);
+  assert.equal(destroyed.destroyed_reason, 'plan_once_collision');
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS count FROM orders WHERE user_id=? AND product_id=? AND channel='redemption' AND status='paid'").get(f.ids.alice, plan.id).count, 1);
+
+  const destroyedList = await (await request(base, '/api/admin/billing/redemption-codes?status=destroyed', admin.cookie)).json();
+  assert.deepEqual(destroyedList.codes.map(item => item.id), [codes[1].id]);
+  assert.equal(destroyedList.codes[0].destroyedByUsername, 'alice');
+  const events = await (await request(base, `/api/admin/billing/redemption-codes/${codes[1].id}/uses`, admin.cookie)).json();
+  assert.equal(events.uses.length, 1); assert.equal(events.uses[0].kind, 'collision'); assert.equal(events.uses[0].username, 'alice');
+  assert.equal((await request(base, `/api/admin/billing/redemption-codes/${codes[1].id}`, admin.cookie, 'PUT', { status: 'active' })).status, 409);
+  assert.equal((await request(base, `/api/admin/billing/redemption-codes/${codes[1].id}`, admin.cookie, 'DELETE')).status, 409);
+  assert.equal(f.db.prepare('SELECT status FROM redemption_codes WHERE id=?').get(codes[1].id).status, 'destroyed');
+  const destroyedRetry = await request(base, '/api/billing/redeem', bob.cookie, 'POST', { code: codes[1].code });
+  assert.equal(destroyedRetry.status, 409); assert.match((await destroyedRetry.json()).error, /已撞车销毁/);
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS count FROM audit_logs WHERE actor_id=? AND action='redemption.collision-destroy'").get(f.ids.alice).count, 1);
+});
+
+test('限购套餐关闭自动销毁时只拒绝撞车并保留兑换码', async t => {
+  const f = await fixture(); const base = await start(f); t.after(() => { f.server.close(); f.db.close(); });
+  const admin = await login(base, 'admin', 'admin-password'); const alice = await login(base, 'alice', 'alice-password'); const bob = await login(base, 'bob', 'bobby-password');
+  const plan = f.db.prepare("SELECT id FROM plans WHERE code='standard'").get();
+  f.db.prepare("UPDATE plans SET purchase_mode='once', destroy_collision_code=0 WHERE id=?").run(plan.id);
+  const created = await request(base, '/api/admin/billing/redemption-codes', admin.cookie, 'POST', { type: 'plan', productId: plan.id, count: 2 });
+  const codes = (await created.json()).codes;
+  assert.equal((await request(base, '/api/billing/redeem', alice.cookie, 'POST', { code: codes[0].code })).status, 200);
+  const rejected = await request(base, '/api/billing/redeem', alice.cookie, 'POST', { code: codes[1].code });
+  assert.equal(rejected.status, 409); assert.match((await rejected.json()).error, /只能兑换一次/);
+  assert.equal(f.db.prepare('SELECT status FROM redemption_codes WHERE id=?').get(codes[1].id).status, 'active');
+  assert.equal((await request(base, '/api/billing/redeem', bob.cookie, 'POST', { code: codes[1].code })).status, 200);
 });
 
 test('增值项和流量包兑换仅增加当前租户权益', async t => {

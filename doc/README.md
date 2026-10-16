@@ -13,10 +13,15 @@
 - [转发与数据 API](./DATA_COMPATIBILITY.md)：四层转发、监控、排行、日志、用量和任务。
 - [套餐与交易 API](./BILLING_COMPATIBILITY.md)：套餐、余额、订单、续费、退款、增值项与流量包。
 - [用户与管理员系统](./ACCOUNT_ADMIN.md)：注册、登录、MFA、客户管理、审计与管理员权限。
+- [代理来源与会话 IP](./CLIENT_IP.md)：可信代理配置、登录 IP 与最近访问 IP。
+- [套餐建站策略](./SITE_PROFILES.md)：AI API 路径规则、长连接与新建网站行为。
+- [遗留站点认领](./SITE_RECOVERY.md)：管理员导入、DNS TXT 验证与一次性恢复套餐。
+- [上游建站兼容](./UPSTREAM_CREATION.md)：套餐 ID 类型及断线后的结果核对。
 
 ## 部署与验收
 
 - [生产部署验收清单](./DEPLOYMENT_CHECKLIST.md)：配置、密钥、注册安全、租户隔离、计费、备份、恢复和发布检查。
+- [证书上传网络排查](./UPLOAD_TROUBLESHOOTING.md)：路径 MTU 验证与可选应用出口网络配置。
 - [安全策略](../SECURITY.md)：漏洞报告方式和生产部署安全要求。
 - [贡献指南](../CONTRIBUTING.md)：开发环境、代码要求与 Pull Request 约定。
 

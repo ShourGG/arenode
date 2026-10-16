@@ -19,7 +19,7 @@ async function fixture() {
     calls,
     updateSite: async (id, input) => { calls.push(['site', id, input]); return true; },
     request: async (method, path, body) => { calls.push(['request', method, path, body]); if (path.startsWith('/v1/monitor/usage')) return []; return true; },
-    createSite: async () => ({ id: 'new' }), getSite: async () => ({}), deleteSite: async () => true, health: async () => true,
+    createSite: async input => { calls.push(['create', input]); return { id: 'new' }; }, getSite: async () => ({}), deleteSite: async () => true, health: async () => true,
   };
   const billing = await new BillingService(db, cdnfly).initialize();
   const trial = db.prepare("SELECT id FROM plans WHERE code='trial'").get();
@@ -96,6 +96,36 @@ async function login(base, username, password) {
 function request(base, path, cookie, method = 'GET', body) {
   return fetch(`${base}${path}`, { method, headers: { cookie, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
 }
+
+test('管理员维护 AI 建站策略且旧站点入口按套餐自动应用', async t => {
+  const f = await fixture(); const api = await startApi(f); t.after(() => { api.server.close(); f.db.close(); });
+  const adminCookie = await login(api.base, 'admin', 'admin-password');
+  const userCookie = await login(api.base, 'alice', 'alice-password');
+  const trial = f.db.prepare("SELECT * FROM plans WHERE code='trial'").get();
+
+  const updated = await request(api.base, `/api/admin/billing/plans/${trial.id}`, adminCookie, 'PUT', { siteProfile: 'mixed_ai' });
+  assert.equal(updated.status, 200, await updated.clone().text());
+  assert.equal((await updated.json()).plan.siteProfile, 'mixed_ai');
+  assert.equal(f.db.prepare('SELECT site_profile FROM plans WHERE id=?').get(trial.id).site_profile, 'mixed_ai');
+
+  const invalid = await request(api.base, `/api/admin/billing/plans/${trial.id}`, adminCookie, 'PUT', { siteProfile: 'unrestricted' });
+  assert.equal(invalid.status, 400);
+  assert.equal(f.db.prepare('SELECT site_profile FROM plans WHERE id=?').get(trial.id).site_profile, 'mixed_ai');
+
+  const subscription = await f.billing.activeSubscription(f.ids.alice);
+  assert.equal(subscription.site_profile, 'mixed_ai');
+  const created = await request(api.base, '/api/sites', userCookie, 'POST', {
+    domain: 'api.example.com', origin: '192.0.2.50', subscriptionId: subscription.id,
+  });
+  assert.equal(created.status, 201, await created.clone().text());
+  const input = f.cdnfly.calls.findLast(call => call[0] === 'create')[1];
+  assert.equal(input.proxy_timeout, 600);
+  assert.equal(input.proxy_http_version, '1.1');
+  assert.equal(input.websocket_enable, 1);
+  assert.deepEqual(input.proxy_cache, []);
+  assert.ok(input.extra_cc_rule.some(rule => new RegExp(rule.matcher[0].value).test('/v1/responses')));
+  assert.equal(f.db.prepare("SELECT websocket FROM sites WHERE domain='api.example.com'").get().websocket, 1);
+});
 
 test('用户余额支付套餐后立即生效且管理员确认接口停用', async t => {
   const f = await fixture(); const api = await startApi(f); t.after(() => { api.server.close(); f.db.close(); });

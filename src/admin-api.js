@@ -148,7 +148,7 @@ export async function handleAdminApi({ req, url, user, db, cdnfly, upstreams = n
         db.prepare(`SELECT s.*,p.name AS plan_name FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.user_id=? ORDER BY s.id DESC LIMIT 20`).all(customer.id),
         db.prepare('SELECT id,domain,state,enabled,created_at FROM sites WHERE owner_id=? ORDER BY id DESC LIMIT 20').all(customer.id),
         db.prepare('SELECT id,type,product_name,amount_cents,status,created_at FROM orders WHERE user_id=? ORDER BY id DESC LIMIT 20').all(customer.id),
-        db.prepare('SELECT token_hash,ip,user_agent,last_seen_at,created_at,expires_at FROM sessions WHERE user_id=? ORDER BY last_seen_at DESC').all(customer.id),
+        db.prepare('SELECT token_hash,ip,last_ip,user_agent,last_seen_at,created_at,expires_at FROM sessions WHERE user_id=? ORDER BY last_seen_at DESC').all(customer.id),
         db.prepare('SELECT id,action,resource_type,resource_id,ip,created_at FROM audit_logs WHERE actor_id=? ORDER BY id DESC LIMIT 20').all(customer.id),
       ]);
       return { status: 200, data: { customer: publicUser(customer), counts, wallet: { balanceCents: Number(wallet?.balance_cents || 0), updatedAt: wallet?.updated_at },

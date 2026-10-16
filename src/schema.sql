@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ip TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS last_ip TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_agent TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
@@ -187,12 +188,21 @@ ALTER TABLE plans ADD CONSTRAINT plans_purchase_mode_check CHECK (purchase_mode 
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_purchase_qty INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_max_purchase_qty_check;
 ALTER TABLE plans ADD CONSTRAINT plans_max_purchase_qty_check CHECK (max_purchase_qty >= 1);
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS destroy_collision_code INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_destroy_collision_code_check;
+ALTER TABLE plans ADD CONSTRAINT plans_destroy_collision_code_check CHECK (destroy_collision_code IN (0, 1));
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS renewal_mode TEXT NOT NULL DEFAULT 'anytime';
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_renewal_mode_check;
 ALTER TABLE plans ADD CONSTRAINT plans_renewal_mode_check CHECK (renewal_mode IN ('off', 'anytime', 'window'));
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS renewal_window_days INTEGER NOT NULL DEFAULT 7;
 ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_renewal_window_days_check;
 ALTER TABLE plans ADD CONSTRAINT plans_renewal_window_days_check CHECK (renewal_window_days >= 1);
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS site_profile TEXT NOT NULL DEFAULT 'web';
+ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_site_profile_check;
+ALTER TABLE plans ADD CONSTRAINT plans_site_profile_check CHECK (site_profile IN ('web', 'openai', 'anthropic', 'gemini', 'azure_openai', 'cohere', 'china_ai', 'mixed_ai'));
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS activation_mode TEXT NOT NULL DEFAULT 'purchase';
+ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_activation_mode_check;
+ALTER TABLE plans ADD CONSTRAINT plans_activation_mode_check CHECK (activation_mode IN ('purchase', 'recovery'));
 CREATE TABLE IF NOT EXISTS subscriptions (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -446,13 +456,76 @@ CREATE TABLE IF NOT EXISTS redemption_codes (
   amount INTEGER NOT NULL DEFAULT 1 CHECK (amount > 0),
   max_uses INTEGER NOT NULL DEFAULT 1 CHECK (max_uses > 0),
   used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+  status TEXT NOT NULL DEFAULT 'active' CONSTRAINT redemption_codes_status_check CHECK (status IN ('active', 'disabled', 'destroyed')),
   starts_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
   created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_by_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_at TIMESTAMPTZ;
+ALTER TABLE redemption_codes ADD COLUMN IF NOT EXISTS destroyed_reason TEXT;
+ALTER TABLE redemption_codes DROP CONSTRAINT IF EXISTS redemption_codes_status_check;
+ALTER TABLE redemption_codes ADD CONSTRAINT redemption_codes_status_check CHECK (status IN ('active', 'disabled', 'destroyed'));
+
+-- Disaster-recovery inventory. These rows are imported from the upstream CDN
+-- without exposing them to tenants until domain ownership is verified.
+CREATE TABLE IF NOT EXISTS recovery_sites (
+  id BIGSERIAL PRIMARY KEY,
+  campaign_key TEXT NOT NULL,
+  upstream_account_id BIGINT NOT NULL REFERENCES upstream_accounts(id) ON DELETE RESTRICT,
+  upstream_package_id TEXT NOT NULL,
+  upstream_site_id TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  backend_protocol TEXT NOT NULL DEFAULT 'http',
+  backend_host TEXT,
+  websocket INTEGER NOT NULL DEFAULT 0,
+  gzip INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  cname TEXT,
+  snapshot TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'orphaned' CHECK (status IN ('orphaned', 'claimed', 'revoked')),
+  owner_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  subscription_id BIGINT REFERENCES subscriptions(id) ON DELETE SET NULL,
+  claimed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(campaign_key, upstream_account_id, upstream_site_id)
+);
+CREATE TABLE IF NOT EXISTS recovery_site_domains (
+  id BIGSERIAL PRIMARY KEY,
+  campaign_key TEXT NOT NULL,
+  recovery_site_id BIGINT NOT NULL REFERENCES recovery_sites(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL,
+  normalized_domain TEXT NOT NULL,
+  UNIQUE(campaign_key, normalized_domain),
+  UNIQUE(recovery_site_id, normalized_domain)
+);
+CREATE INDEX IF NOT EXISTS idx_recovery_sites_campaign_status ON recovery_sites(campaign_key, status);
+CREATE INDEX IF NOT EXISTS idx_recovery_site_domains_lookup ON recovery_site_domains(campaign_key, normalized_domain);
+CREATE TABLE IF NOT EXISTS recovery_activation_grants (
+  id BIGSERIAL PRIMARY KEY,
+  campaign_key TEXT NOT NULL,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  plan_id BIGINT NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
+  subscription_id BIGINT NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
+  activated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(campaign_key, user_id)
+);
+CREATE TABLE IF NOT EXISTS recovery_claims (
+  id BIGSERIAL PRIMARY KEY,
+  campaign_key TEXT NOT NULL,
+  recovery_site_id BIGINT NOT NULL REFERENCES recovery_sites(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  challenge_hash TEXT NOT NULL,
+  record_name TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_recovery_claims_pending ON recovery_claims(recovery_site_id, user_id) WHERE verified_at IS NULL;
 CREATE TABLE IF NOT EXISTS redemption_uses (
   id BIGSERIAL PRIMARY KEY,
   code_id BIGINT NOT NULL REFERENCES redemption_codes(id) ON DELETE RESTRICT,

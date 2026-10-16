@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { changeBalance } from './wallet.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
+import { normalizeSiteProfile } from './site-profiles.js';
 
 const GIB = 1024 ** 3;
 
@@ -38,6 +39,10 @@ function purchaseMode(plan) {
 function maxPurchaseQty(plan) {
   const parsed = Number.parseInt(plan?.max_purchase_qty, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function destroyCollisionCode(plan) {
+  return ![0, false, '0', 'false', 'off'].includes(plan?.destroy_collision_code);
 }
 
 function renewalMode(plan) {
@@ -94,8 +99,10 @@ function planPublic(row) {
     id: row.id, groupId: row.group_id, code: row.code, name: row.name, description: row.description,
     priceCents: row.price_cents, durationDays: row.duration_days, domainLimit: row.domain_limit,
     trafficLimitBytes: row.traffic_limit_bytes, portLimit: row.port_limit, enabled: Boolean(row.enabled), sort: row.sort,
-    purchaseMode: purchaseMode(row), maxPurchaseQty: maxPurchaseQty(row),
+    purchaseMode: purchaseMode(row), maxPurchaseQty: maxPurchaseQty(row), destroyCollisionCode: destroyCollisionCode(row),
     renewalMode: renewalMode(row), renewalWindowDays: renewalWindowDays(row),
+    siteProfile: normalizeSiteProfile(row.site_profile),
+    activationMode: row.activation_mode === 'recovery' ? 'recovery' : 'purchase',
     upstreamId: row.upstream_id ? Number(row.upstream_id) : null, upstreamPackageId: row.upstream_package_id || null,
   };
 }
@@ -171,6 +178,7 @@ export class BillingService {
       if (!user) throw Object.assign(new Error('客户不存在'), { status: 404 });
       const plan = await transaction.prepare('SELECT * FROM plans WHERE id = ?').get(Number(planId));
       if (!plan) throw Object.assign(new Error('套餐不存在'), { status: 404 });
+      if (plan.activation_mode === 'recovery') throw Object.assign(new Error('恢复套餐只能通过域名认领流程激活'), { status: 403 });
       if (this.upstreams && (!plan.upstream_id || !plan.upstream_package_id)) throw Object.assign(new Error('套餐未绑定可用的上游套餐'), { status: 409 });
       const firstAcquisition = await checkPlanAcquisition(transaction, userId, plan.id);
       const mode = purchaseMode(plan);
@@ -205,7 +213,7 @@ export class BillingService {
         AND ((auto_renew=0 AND grace_ends_at IS NULL AND ends_at<=?) OR (grace_ends_at IS NOT NULL AND grace_ends_at<=?))`).run(userId, now, now);
     return this.db.prepare(`SELECT s.*, p.group_id, p.code, p.name AS plan_name, p.description AS plan_description,
       p.price_cents, p.duration_days, p.domain_limit, p.traffic_limit_bytes, p.port_limit, p.enabled AS plan_enabled,
-      p.purchase_mode, p.max_purchase_qty, p.renewal_mode, p.renewal_window_days
+      p.purchase_mode, p.max_purchase_qty, p.renewal_mode, p.renewal_window_days, p.site_profile
       FROM subscriptions s JOIN plans p ON p.id = s.plan_id
       WHERE s.user_id = ? AND s.status IN ('active', 'suspended') AND s.starts_at <= ?
         AND (s.ends_at > ? OR (s.grace_ends_at IS NOT NULL AND s.grace_ends_at > ?))
@@ -464,10 +472,11 @@ export class BillingService {
     const now = new Date();
     await this.db.transaction(async transaction => {
       const subscription = await transaction.prepare(`SELECT s.*, p.name AS plan_name, p.price_cents, p.duration_days,
-        p.domain_limit, p.traffic_limit_bytes, p.port_limit, p.enabled AS plan_enabled,
+        p.domain_limit, p.traffic_limit_bytes, p.port_limit, p.enabled AS plan_enabled, p.activation_mode,
         p.renewal_mode, p.renewal_window_days
         FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.id=? FOR UPDATE`).get(Number(subscriptionId));
       if (!subscription || ['cancelled', 'pending'].includes(subscription.status)) throw Object.assign(new Error('客户套餐不存在或不能续费'), { status: 404 });
+      if (subscription.activation_mode === 'recovery') throw Object.assign(new Error('恢复套餐不能续费'), { status: 403 });
       if (!Number(subscription.plan_enabled)) throw Object.assign(new Error('套餐已停止续费'), { status: 409 });
       assertRenewalAllowed(subscription, subscription, now);
       if (automatic && new Date(subscription.ends_at) > now && !subscription.grace_ends_at) {
@@ -587,4 +596,4 @@ export class BillingService {
   }
 }
 
-export const billingInternals = { DEFAULT_PLANS, periodKey, monthRange, domainCount, planPublic, purchaseMode, maxPurchaseQty, renewalMode, renewalWindowDays, assertRenewalAllowed, stackBaseDate, livePlanSubscription, checkPlanAcquisition, recordPlanAcquisition, addDays };
+export const billingInternals = { DEFAULT_PLANS, periodKey, monthRange, domainCount, planPublic, purchaseMode, maxPurchaseQty, destroyCollisionCode, renewalMode, renewalWindowDays, assertRenewalAllowed, stackBaseDate, livePlanSubscription, checkPlanAcquisition, recordPlanAcquisition, addDays };

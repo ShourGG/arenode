@@ -33,8 +33,8 @@ test('站点和资源始终使用订阅冻结的上游套餐 ID', async () => {
     const resource = db.prepare('SELECT * FROM tenant_resources WHERE id=?').get(resourceId);
     const siteClient = await upstreams.clientForSite(site);
     const resourceClient = await upstreams.clientForResource(resource);
-    assert.equal(siteClient.packageId, '16180');
-    assert.equal(resourceClient.packageId, '16180');
+    assert.equal(siteClient.packageId, 16180);
+    assert.equal(resourceClient.packageId, 16180);
     assert.equal(siteClient.accountId, account.id);
     assert.equal(resourceClient.accountId, account.id);
     assert.equal(siteClient.cnameSuffix, 'cdndns.vip');
@@ -45,7 +45,7 @@ test('站点和资源始终使用订阅冻结的上游套餐 ID', async () => {
     db.prepare(`INSERT INTO subscriptions (user_id,plan_id,status,starts_at,ends_at,upstream_id,upstream_package_id)
       VALUES (?,?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days', ?, ?)`).run(user, secondPlan, account.id, '16181');
     const clients = await upstreams.clientsForUser(user);
-    assert.deepEqual(clients.map(client => client.packageId), ['16180', '16181']);
+    assert.deepEqual(clients.map(client => client.packageId), [16180, 16181]);
   } finally {
     await db.close();
   }
