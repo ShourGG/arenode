@@ -10,6 +10,7 @@ import { renderAccountProfile } from '../../views/account-view.js';
 import { loadAdminOverview } from '../../views/admin-view.js';
 import { loadOverviewData } from '../../views/overview-view.js';
 import { loadSites } from '../../views/sites-view.js';
+import { initLoginArtFx } from './login-art.js';
 
 function hideBootSplash() {
   $('#bootSplash')?.classList.add('hidden');
@@ -210,3 +211,6 @@ $('#forgotForm').addEventListener('submit', async event => {
 });
 
 $('#logoutButton').addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST' }).catch(() => null); showLogin(); });
+
+// 登录页右侧花朵鼠标互动（视差倾斜 + 探照灯 + 粒子涟漪）；reduced-motion 或加载失败时自动降级为静态点阵
+initLoginArtFx();

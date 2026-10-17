@@ -241,6 +241,22 @@ dialog .repeater-head { margin: 0 0 12px; }
 @keyframes art-spin { to { rotate: 360deg; } }
 @keyframes art-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
 @keyframes art-enter { from { opacity: 0; translate: 0 18px; } }
+/* ===== 右栏鼠标互动（A 视差倾斜 + C 粒子涟漪）：舞台 3D 倾斜跟随光标，canvas 粒子层接管后隐藏静态降级点阵 ===== */
+.art-stage {
+  position: absolute; inset: 0;
+  transform: perspective(1100px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform .28s cubic-bezier(.22, .8, .3, 1);
+  will-change: transform;
+}
+.art-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.art-stage.art-live .art-dots { display: none; }
+/* 光标探照灯：跟随光标的橙色柔光（JS 写入 --glow-x/y，无 JS 时停在中央） */
+.login-art::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle 190px at var(--glow-x, 50%) var(--glow-y, 50%), color-mix(in srgb, var(--accent) 18%, transparent), transparent 72%);
+  opacity: 0; transition: opacity .35s ease;
+}
+.login-art:hover::after { opacity: 1; }
 /* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
 .login-shell:not(.hidden) { animation: login-fade .45s ease-out, login-bg-pan 24s ease-in-out infinite alternate; }
 @keyframes login-fade { from { opacity: 0; } }
