@@ -31,25 +31,23 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(app, /sessionStorage\.setItem\('arenode-service-status'/);
   assert.match(html, /id="bootSplash"/);
   assert.match(html, /id="loginView" class="login-shell hidden"/);
-  // Factory 风格登录页契约：右侧半调点阵艺术层 + 巨型表单标题
-  assert.match(html, /<aside class="login-art" aria-hidden="true"><div class="art-stage"><div class="art-dots"><\/div><canvas class="art-canvas"><\/canvas><\/div><\/aside>/);
-  assert.match(css, /\.login-art \.art-dots\s*\{[^}]*mask-image: url\('\/assets\/login-halftone\.svg'\)/);
+  // Factory 风格登录页契约：右侧官方徽标艺术层 + 巨型表单标题
+  assert.match(html, /<aside class="login-art" aria-hidden="true"><div class="art-stage"><div class="art-logo"><\/div><\/div><\/aside>/);
+  assert.match(css, /\.login-art \.art-logo\s*\{[^}]*mask-image: url\('\/assets\/factory-logo\.svg'\)/);
   assert.match(css, /\.login-form > h2\s*\{[^}]*clamp\(38px, 4\.4vw, 56px\)/);
-  // Factory 1:1 复刻契约：登录页橙色主调作用域 + 六瓣花朵 logo（mask 取令牌色）+ 点阵漂移与表单入场动画
+  // Factory 1:1 复刻契约：登录页橙色主调作用域 + 官方星形徽标（mask 取令牌色）+ 呼吸与表单入场动画
   assert.match(css, /\.login-shell\s*\{[^}]*--accent:\s*#ff4d00/);
-  assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/logo-flower\.svg'\)/);
-  assert.match(css, /@keyframes art-spin \{\s*to \{ rotate: 360deg/);
+  assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/factory-logo\.svg'\)/);
+  assert.match(css, /@keyframes art-enter \{\s*from \{ opacity: 0/);
   assert.match(css, /@keyframes art-breathe/);
   assert.match(css, /@keyframes art-gradient/);
   assert.match(css, /\.login-art\s*\{[^}]*radial-gradient\(46% 40% at 30% 28%, color-mix\(in srgb, var\(--accent\) 13%/);
-  // 右栏鼠标互动契约：3D 倾斜舞台 + canvas 粒子层接管后隐藏降级点阵 + 光标探照灯 + 粒子物理与点击爆发
+  // 右栏鼠标互动契约：3D 倾斜舞台 + 按压回弹 + 光标探照灯 + CSS 变量驱动倾斜
   assert.match(css, /\.art-stage\s*\{[^}]*perspective\(1100px\) rotateX\(var\(--tilt-x/);
-  assert.match(css, /\.art-stage\.art-live \.art-dots\s*\{\s*display: none/);
+  assert.match(css, /\.login-art:active \.art-stage\s*\{[^}]*scale\(\.96\)/);
   assert.match(css, /\.login-art::after\s*\{[^}]*radial-gradient\(circle 190px at var\(--glow-x/);
   assert.match(app, /initLoginArtFx\(\)/);
-  assert.match(app, /fetch\(SVG_URL/);
-  assert.match(app, /art\.addEventListener\('mousedown'/);
-  assert.match(app, /requestAnimationFrame\(frame\)/);
+  assert.match(app, /stage\.style\.setProperty\('--tilt-x'/);
   assert.match(css, /@keyframes login-bg-pan/);
   assert.match(css, /\.login-shell:not\(\.hidden\)\s*\{[^}]*login-bg-pan 24s/);
   assert.match(css, /\[data-theme='dark'\] \.login-shell\s*\{\s*--login-glow:/);
