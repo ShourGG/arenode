@@ -4,6 +4,11 @@ import { $ } from './dom.js';
 
 let serviceStatusTimer = null;
 
+function statusStorageKey() {
+  const userId = state.me?.user?.id;
+  return userId ? `arenode-service-status:${userId}` : 'arenode-service-status:anonymous';
+}
+
 export function stopServiceStatusTimer() {
   clearInterval(serviceStatusTimer); serviceStatusTimer = null;
 }
@@ -18,22 +23,30 @@ export function paintServiceStatus(status, { unknown = false } = {}) {
   }
   const healthy = status === 'healthy'; const degraded = status === 'degraded';
   const checking = status === 'checking';
+  const label = checking ? '检测中' : healthy ? '正常' : degraded ? '部分降级' : '服务异常';
   top.className = checking ? 'pending' : healthy ? 'healthy' : degraded ? 'warning' : 'error';
-  top.innerHTML = `<i></i>${checking ? '检测中' : healthy ? '正常' : degraded ? '部分降级' : '部分异常'}`;
+  top.innerHTML = `<i></i>${label}`;
   if (overview) {
-    overview.textContent = checking ? '检测中' : healthy ? '服务正常' : degraded ? '部分降级' : '部分异常';
+    overview.textContent = checking ? '检测中' : healthy ? '服务正常' : degraded ? '部分降级' : '服务异常';
     overview.className = checking ? '' : healthy ? 'success-text' : degraded ? 'warning-text' : 'danger-text';
   }
 }
 
 export function recalledServiceStatus() {
-  if (state.serviceStatus) return state.serviceStatus;
-  try { return sessionStorage.getItem('arenode-service-status') || null; } catch { return null; }
+  const userId = state.me?.user?.id ?? null;
+  if (state.serviceStatus && state.serviceStatusUserId === userId) return state.serviceStatus;
+  try { return sessionStorage.getItem(statusStorageKey()) || null; } catch { return null; }
 }
 
 function rememberServiceStatus(status) {
   state.serviceStatus = status;
-  try { sessionStorage.setItem('arenode-service-status', status); } catch {}
+  state.serviceStatusUserId = state.me?.user?.id ?? null;
+  try { sessionStorage.setItem(statusStorageKey(), status); } catch {}
+}
+
+export function clearRecalledServiceStatus() {
+  state.serviceStatus = null;
+  state.serviceStatusUserId = null;
 }
 
 export async function loadServiceStatus() {
@@ -48,7 +61,8 @@ export async function loadServiceStatus() {
     rememberServiceStatus(status);
     paintServiceStatus(status);
   } catch {
-    if (!recalledServiceStatus()) paintServiceStatus(null, { unknown: true });
+    // Do not keep showing a stale red/amber state when the probe itself failed.
+    paintServiceStatus(null, { unknown: true });
   }
   if (!serviceStatusTimer) serviceStatusTimer = setInterval(() => { if (state.me) loadServiceStatus().catch(() => {}); }, 30_000);
 }

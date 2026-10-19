@@ -28,7 +28,7 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(html, /app\.js\?v=recovery1-sessionip1/);
   assert.match(app, /if \(autoRenew\) autoRenew\.checked/);
   assert.match(app, /if \(last\) paintServiceStatus\(last\)/);
-  assert.match(app, /sessionStorage\.setItem\('arenode-service-status'/);
+  assert.match(app, /statusStorageKey|sessionStorage\.setItem\([^)]*arenode-service-status/);
   assert.match(html, /id="bootSplash"/);
   assert.match(html, /id="loginView" class="login-shell hidden"/);
   // Factory 风格登录页契约：右侧官方徽标艺术层 + 巨型表单标题

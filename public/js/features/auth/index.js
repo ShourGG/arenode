@@ -4,7 +4,7 @@ import { configureTurnstile, resetTurnstile, startCooldown, turnstileToken } fro
 import { $, $$ } from '../../core/dom.js';
 import { applyPublicSettings } from '../../core/layout.js';
 import { navigateFromButton } from '../../core/router.js';
-import { loadServiceStatus, stopServiceStatusTimer } from '../../core/service-status.js';
+import { clearRecalledServiceStatus, loadServiceStatus, stopServiceStatusTimer } from '../../core/service-status.js';
 import { api, handleError } from '../../services/api-client.js';
 import { renderAccountProfile } from '../../views/account-view.js';
 import { loadAdminOverview } from '../../views/admin-view.js';
@@ -18,6 +18,7 @@ function hideBootSplash() {
 
 export function showLogin() {
   stopServiceStatusTimer();
+  clearRecalledServiceStatus();
   state.me = null; state.capabilities = { wafRules: true, attackLogs: true }; $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden');
   hideBootSplash();
   for (const item of [$('#appAnnouncement'), $('#publicAnnouncement')]) item?.classList.add('hidden');
