@@ -252,14 +252,14 @@ dialog .repeater-head { margin: 0 0 12px; }
   transform: perspective(1100px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(.96);
   transition-duration: .12s;
 }
-/* 光标探照灯：跟随光标的橙色柔光（JS 写入 --glow-x/y，无 JS 时停在中央） */
-.login-art::after {
+/* 整页鼠标柔光位于表单和粒子下方，按帧更新位置。 */
+.login-shell::after {
   content: ''; position: absolute; z-index: -1; left: 0; top: 0; width: 380px; height: 380px; pointer-events: none;
   background: radial-gradient(circle 190px at center, color-mix(in srgb, var(--accent) 18%, transparent), transparent 72%);
   transform: translate3d(calc(var(--glow-x, 0px) - 50%), calc(var(--glow-y, 0px) - 50%), 0);
   opacity: 0; transition: opacity .35s ease;
 }
-.login-art:hover::after { opacity: 1; }
+.login-shell.pointer-active::after { opacity: 1; }
 /* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
 .login-shell:not(.hidden) { animation: login-fade .45s ease-out; }
 @keyframes login-fade { from { opacity: 0; } }
@@ -281,6 +281,7 @@ dialog .repeater-head { margin: 0 0 12px; }
   .login-form > h2 { font-size: 34px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .login-shell::after { display: none; }
   .login-shell:not(.hidden), .login-form > *, .login-art, .login-art .art-logo,
   .app-entering, .app-entering .sidebar, .app-entering .topbar, .app-entering .view.active > * { animation: none !important; }
 }

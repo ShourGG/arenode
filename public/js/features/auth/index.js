@@ -10,7 +10,7 @@ import { renderAccountProfile } from '../../views/account-view.js';
 import { loadAdminOverview } from '../../views/admin-view.js';
 import { loadOverviewData } from '../../views/overview-view.js';
 import { loadSites } from '../../views/sites-view.js';
-import { initLoginArtFx } from './login-art.js';
+import { initLoginArtFx } from './login-art.js?v=login-pointer-20261020';
 
 function hideBootSplash() {
   $('#bootSplash')?.classList.add('hidden');
