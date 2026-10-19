@@ -243,13 +243,15 @@ export async function handleRedemptionApi({ req, url, user, db, billing, readBod
         const startsAt = body.startsAt === undefined ? row.starts_at : parseDate(body.startsAt, '开始时间');
         const expiresAt = body.expiresAt === undefined ? row.expires_at : parseDate(body.expiresAt, '过期时间');
         if (startsAt && expiresAt && new Date(expiresAt) <= new Date(startsAt)) throw httpError('兑换码有效期无效');
-        await db.prepare(`UPDATE redemption_codes SET label=?, status=?, max_uses=?, starts_at=?, expires_at=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-          .run(body.label === undefined ? row.label : String(body.label || ''), status, maxUses, startsAt, expiresAt, row.id);
+        const updated = await db.prepare(`UPDATE redemption_codes SET label=?, status=?, max_uses=?, starts_at=?, expires_at=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status<>'destroyed' RETURNING id`)
+          .get(body.label === undefined ? row.label : String(body.label || ''), status, maxUses, startsAt, expiresAt, row.id);
+        if (!updated) throw httpError('撞车销毁的兑换码不能恢复或修改', 409);
         return { status: 200, data: { code: (await codeRows(db, 'WHERE c.id=?', [row.id]))[0] }, action: 'redemption.update', resourceId: row.id };
       }
       if (req.method === 'DELETE') {
         if (row.status === 'destroyed') throw httpError('撞车销毁的兑换码不能恢复或修改', 409);
-        await db.prepare("UPDATE redemption_codes SET status='disabled', updated_at=CURRENT_TIMESTAMP WHERE id=?").run(row.id);
+        const updated = await db.prepare("UPDATE redemption_codes SET status='disabled', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status<>'destroyed' RETURNING id").get(row.id);
+        if (!updated) throw httpError('撞车销毁的兑换码不能恢复或修改', 409);
         return { status: 200, data: { ok: true }, action: 'redemption.disable', resourceId: row.id };
       }
     }

@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="/css/console.css?v=recovery1">
   <link rel="stylesheet" href="/css/dark.css?v=recovery1">
   <link rel="stylesheet" href="/css/notion.css?v=recovery1">
+  <link rel="stylesheet" href="/css/operations.css?v=main-ui-20261019">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -154,6 +155,8 @@
         </div>
 
         <div class="admin-only admin-nav">
+          <button data-view="backups-admin" data-title="数据库备份" class="nav-direct"><span class="nav-icon">▣</span><span>数据库备份</span></button>
+          <button data-view="inspection-admin" data-title="AI 站点巡查" class="nav-direct"><span class="nav-icon">◎</span><span>AI 站点巡查</span></button>
           <label class="nav-search"><span>⌕</span><input id="adminNavSearch" type="search" placeholder="搜索后台功能" aria-label="搜索后台功能"></label>
           <button data-view="admin-overview" data-title="管理控制台" class="nav-direct active"><span class="nav-icon">◆</span><span>管理控制台</span></button>
           <section class="nav-cluster"><button type="button" class="nav-parent" data-nav-toggle><span class="nav-icon">♙</span><span>运营管理</span><i></i></button><div class="nav-children"><button data-view="users" data-title="客户管理"><span></span>客户管理</button><button data-view="invitations" data-title="邀请码"><span></span>邀请码</button><button data-view="admin-sites" data-title="站点管理"><span></span>站点管理</button><button data-view="admin-streams" data-title="四层转发"><span></span>四层转发</button><button data-view="recovery-admin" data-title="灾后恢复"><span></span>灾后恢复</button><button data-view="billing-admin" data-admin-billing-tab="usage" data-title="客户用量"><span></span>客户用量</button></div></section>
@@ -177,6 +180,8 @@
       </header>
 
       <main class="content">
+        <section id="backups-admin" class="view admin-only"></section>
+        <section id="inspection-admin" class="view admin-only"></section>
         <div id="appAnnouncement" class="app-announcement hidden"><div><strong></strong><p></p></div><button id="closeAppAnnouncement" class="icon-button" type="button" aria-label="关闭公告">×</button></div>
         <section id="overview" class="view active">
           <section class="overview-welcome">
@@ -784,6 +789,6 @@
   <dialog id="recordDialog" class="wide-dialog"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">RECORDS</p><h3 id="recordDialogTitle">记录</h3></div><button type="button" class="icon-button" data-close="recordDialog" aria-label="关闭">×</button></div><div id="recordDialogBody" class="record-list"></div><div class="dialog-actions"><button type="button" class="primary" data-close="recordDialog">关闭</button></div></form></dialog>
   <dialog id="inviteDialog"><form id="inviteForm" method="dialog"><div class="dialog-head"><div><p class="eyebrow">REGISTRATION INVITE</p><h3>生成邀请码</h3></div><button type="button" class="icon-button" data-close="inviteDialog" aria-label="关闭">×</button></div><label>生成数量<input name="count" type="number" min="1" max="100" value="1" required></label><label>单码可用次数<input name="maxUses" type="number" min="1" max="100000" value="1" required></label><label>过期时间<input name="expiresAt" type="datetime-local"></label><label>标签<input name="label" maxlength="120"></label><div class="dialog-actions"><button type="button" class="secondary" data-close="inviteDialog">取消</button><button type="submit" class="primary">生成邀请码</button></div></form></dialog>
 
-      <script type="module" src="/app.js?v=recovery1-sessionip1"></script>
+      <script type="module" src="/app.js?v=main-ui-20261019"></script>
 </body>
 </html>

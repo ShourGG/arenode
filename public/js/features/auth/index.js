@@ -52,7 +52,7 @@ export async function showApp() {
   $$('.admin-only').forEach(el => el.classList.toggle('hidden', state.me.user.role !== 'admin'));
   $$('.customer-only').forEach(el => el.classList.toggle('hidden', state.me.user.role === 'admin'));
   const superAdmin = state.me.user.role === 'admin' && state.me.user.adminRole === 'super_admin';
-  for (const view of ['administrators', 'invitations', 'runtime-settings', 'upstreams']) {
+  for (const view of ['administrators', 'invitations', 'runtime-settings', 'upstreams', 'backups-admin', 'inspection-admin']) {
     $$(`[data-view="${view}"]`).forEach(element => element.classList.toggle('hidden', !superAdmin));
     $(`#${view}`)?.classList.toggle('restricted-view', !superAdmin);
   }

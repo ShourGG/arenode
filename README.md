@@ -40,7 +40,7 @@ Arenode ───── PostgreSQL（用户、归属、套餐、钱包、审计�
 - 一个可用的 CDNFly v6 普通用户 API 账号
 - 用于生产访问的域名和 HTTPS 反向代理
 
-本地源码运行还需要 Node.js 22.5+、PostgreSQL 17 和 Redis 7。
+本地源码运行需要 Node.js 24.22.0+（LTS）、PostgreSQL 18.6 和 Redis 8.10.2。Docker 与 CI 使用相同版本；旧 PostgreSQL 17 部署须先按[运行环境升级指南](./doc/RUNTIME_UPGRADE.md)迁移数据。
 
 ## Docker 快速开始
 
@@ -106,9 +106,13 @@ ARENODE_IMAGE=ghcr.io/<仓库所有者>/<仓库名>:latest
 
 ## 生产部署
 
+资源用量更新使用跨进程用户锁；同一用户同时修改资源或刷新四层配置时可能返回 409，可稍后重试。PostgreSQL 每个应用进程最多使用 12 个业务连接及 12 个专用锁连接，请在数据库连接预算中预留；锁池满时立即拒绝竞争请求，不占用业务查询连接等待。
+
 生产环境不要把 3080 端口直接暴露到公网。保持默认回环监听，通过 Caddy、Nginx 或其他反向代理提供 HTTPS，并将 `APP_ORIGIN` 设置为完整外部地址。
 
 Nginx 示例：
+
+同时在 `.env` 中配置 `TRUSTED_PROXY_CIDRS` 为应用实际连接到的反向代理 IP 或 CIDR（逗号分隔）。同机直接运行可用 `127.0.0.1,::1`；Docker 部署应核对应用看到的桥接网关地址。仅信任受控代理，不要配置全网网段。代理必须追加或覆盖 `X-Forwarded-For`。留空时忽略转发头，限流、审计及会话记录使用连接来源地址；配置后从右向左跳过可信代理，使用首个不可信地址识别客户端。
 
 ```nginx
 server {
@@ -196,7 +200,7 @@ npm test
 docker compose exec -T postgres pg_dump -U cdnfly -d cdnfly_reseller -Fc > arenode.dump
 ```
 
-升级前应同时保存 `.env`、`SETTINGS_ENCRYPTION_KEY` 和数据库备份，然后：
+升级前应同时保存 `.env`、`SETTINGS_ENCRYPTION_KEY` 和数据库备份。以下命令仅适用于同一数据库大版本内升级；从 PostgreSQL 17 / Redis 7 升级到当前版本必须先完成[运行环境升级指南](./doc/RUNTIME_UPGRADE.md)，不能直接复用旧数据库目录：
 
 ```bash
 docker compose pull
@@ -242,3 +246,7 @@ Arenode 展示上游实际签发和同步状态。请确认测试域名的 CNAME
 ## 许可证
 
 Arenode 使用 [MIT License](./LICENSE) 发布。
+
+## 数据库备份与 AI 巡查
+
+管理端支持 S3 加密备份、保留份数、定时备份及覆盖当前库还原；AI 站点巡查支持 OpenAI 兼容接口、定时/手动执行、证据与置信度、人工审核和可选自动禁用。配置和还原说明见 [备份与巡查指南](doc/BACKUPS_AND_INSPECTION.md)。

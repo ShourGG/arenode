@@ -21,7 +21,7 @@ export function normalizeDomain(value) {
   if (!domain || domain.length > 253 || domain.includes('/') || domain.includes(':') || domain.includes('@') || domain.includes('..')) {
     throw httpError('域名格式无效');
   }
-  const labels = domain.split('.');
+  const labels = domain.replace(/^\*\./, '').split('.');
   if (labels.length < 2 || labels.some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) throw httpError('域名格式无效');
   return domain;
 }
@@ -30,9 +30,13 @@ function domainList(value) {
   const result = [];
   for (const item of String(value || '').split(/[\s,]+/)) {
     if (!item) continue;
-    try { result.push(normalizeDomain(item)); } catch { /* malformed upstream aliases are not claimable */ }
+    result.push(normalizeDomain(item));
   }
   return [...new Set(result)];
+}
+
+function claimRecordName(domain) {
+  return `_arenode-claim.${normalizeDomain(domain).replace(/^\*\./, '')}`;
 }
 
 function collectionItems(payload) {
@@ -91,7 +95,8 @@ function siteId(site) {
 }
 
 function siteDomain(site) {
-  return text(firstValue(site?.domain, site?.domains, site?.server_name), 2048);
+  // Every alias must survive import so the whole upstream site is verified.
+  return String(firstValue(site?.domain, site?.domains, site?.server_name) ?? '').trim();
 }
 
 function enabledValue(value) {
@@ -353,7 +358,7 @@ export async function handleRecoveryApi({ req, url, user, db, billing, upstreams
       WHERE g.campaign_key=? AND g.user_id=?`).get(campaignKey, user.id);
     if (grant && (!['active', 'suspended'].includes(grant.status) || new Date(grant.ends_at) <= new Date())) throw httpError('恢复套餐已到期，不能再次激活', 409);
     const raw = `arenode-${crypto.randomBytes(24).toString('base64url')}`;
-    const recordName = `_arenode-claim.${domain}`;
+    const recordName = claimRecordName(domain);
     const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString();
     let row;
     await db.transaction(async transaction => {
@@ -381,8 +386,7 @@ export async function handleRecoveryApi({ req, url, user, db, billing, upstreams
     // not transfer the other names; disclose aliases only after the first proof.
     const verifiedDomains = domainList(claim.domain).sort();
     const additionalRecordNames = [];
-    for (const domain of verifiedDomains) {
-      const name = `_arenode-claim.${domain}`;
+    for (const name of new Set(verifiedDomains.map(claimRecordName))) {
       if (name === claim.record_name) continue;
       try {
         const records = await dnsResolveTxt(name);

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // styles.css 已按层拆分为 public/css/*.css（Phase 2a），测试按 link 顺序拼接后断言
-const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console', 'dark', 'notion'];
+const cssLayers = ['base', 'theme', 'workbench', 'account', 'commercial', 'workflows', 'console', 'dark', 'notion', 'operations'];
 const css = cssLayers.map(name => fs.readFileSync(new URL(`../public/css/${name}.css`, import.meta.url), 'utf8')).join('\n');
 const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 // app.js 已拆分为入口 + public/js/** 模块；测试按模块拼接后断言，保持与旧单文件一致
@@ -25,7 +25,7 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.data-workbench\s*\{\s*display:\s*block/);
   assert.doesNotMatch(css, /#adminBillingTabs[^{}]*\{[^{}]*display:\s*none/);
   assert.match(html, /css\/base\.css\?v=recovery1/);
-  assert.match(html, /app\.js\?v=recovery1-sessionip1/);
+  assert.match(html, /app\.js\?v=main-ui-20261019/);
   assert.match(app, /if \(autoRenew\) autoRenew\.checked/);
   assert.match(app, /if \(last\) paintServiceStatus\(last\)/);
   assert.match(app, /statusStorageKey|sessionStorage\.setItem\([^)]*arenode-service-status/);

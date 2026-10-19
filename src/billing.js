@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { withResourceMutation } from './resource-mutation.js';
 import { changeBalance } from './wallet.js';
 import { ensureCustomerUpstreamGroups } from './customer-groups.js';
 import { normalizeSiteProfile } from './site-profiles.js';
@@ -337,6 +338,16 @@ export class BillingService {
     return selected;
   }
 
+  async assertBatchProjected(userId, entries) {
+    const totals = new Map();
+    for (const { subscriptionId, domains = 0, ports = 0 } of entries) {
+      const id = Number(subscriptionId);
+      const total = totals.get(id) || { domains: 0, ports: 0 };
+      total.domains += domains; total.ports += ports; totals.set(id, total);
+    }
+    for (const [id, total] of totals) await this.assertProjected(userId, total, id);
+  }
+
   async syncSitePorts(siteId, config) {
     if (!Object.hasOwn(config || {}, 'http_listen') && !Object.hasOwn(config || {}, 'https_listen')) return;
     const ports = [];
@@ -345,9 +356,12 @@ export class BillingService {
       for (const port of String(listen.port ?? '').split(/[\s,]+/).map(Number)) if (Number.isInteger(port) && port > 0 && port <= 65535 && port !== standard) ports.push(port);
     };
     add(config?.http_listen, 80); add(config?.https_listen, 443);
-    await this.db.prepare('DELETE FROM site_custom_ports WHERE site_id = ?').run(siteId);
-    const insert = this.db.prepare('INSERT OR IGNORE INTO site_custom_ports (site_id, port) VALUES (?, ?)');
-    for (const port of new Set(ports)) await insert.run(siteId, port);
+    await this.db.transaction(async transaction => {
+      await transaction.prepare('SELECT id FROM sites WHERE id=? FOR UPDATE').get(siteId);
+      await transaction.prepare('DELETE FROM site_custom_ports WHERE site_id = ?').run(siteId);
+      const insert = transaction.prepare('INSERT OR IGNORE INTO site_custom_ports (site_id, port) VALUES (?, ?)');
+      for (const port of new Set(ports)) await insert.run(siteId, port);
+    });
   }
 
   async syncTraffic(userId) {
@@ -426,12 +440,20 @@ export class BillingService {
   }
 
   async restore(userId, subscriptionId = null) {
+    return withResourceMutation(this.db, userId, () => this.restoreUnlocked(userId, subscriptionId), { allowReentrant: true });
+  }
+
+  async restoreUnlocked(userId, subscriptionId = null) {
     const rows = subscriptionId === null
       ? await this.db.prepare('SELECT * FROM quota_suspensions WHERE user_id = ? AND restored_at IS NULL ORDER BY id').all(userId)
       : await this.db.prepare('SELECT * FROM quota_suspensions WHERE user_id = ? AND subscription_id = ? AND restored_at IS NULL ORDER BY id').all(userId, subscriptionId);
     for (const row of rows) {
       try {
         if (row.resource_kind === 'site') {
+          if (await this.db.prepare('SELECT site_id FROM site_policy_holds WHERE site_id=?').get(row.resource_id)) {
+            await this.db.prepare('UPDATE quota_suspensions SET restored_at=CURRENT_TIMESTAMP WHERE id=?').run(row.id);
+            continue;
+          }
           const site = await this.db.prepare('SELECT * FROM sites WHERE id = ? AND owner_id = ?').get(row.resource_id, userId);
           if (site) {
             const cdnfly = this.upstreams ? await this.upstreams.clientForSite(site) : this.cdnfly;
@@ -547,6 +569,7 @@ export class BillingService {
   }
 
   async runScheduled({ syncTraffic = true } = {}) {
+    if (this.paused || this.scheduler.runningSince) return;
     const started = Date.now();
     this.scheduler.runningSince = new Date(started).toISOString();
     try {

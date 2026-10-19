@@ -1,4 +1,7 @@
 import { state } from '../state/index.js';
+import { loadOperations } from '../../operations.js';
+import { api } from '../services/api-client.js';
+import { toast } from '../components/toast.js';
 import { loadBillingAdmin, setAdminBillingTab } from '../features/billing/admin-billing.js';
 import { setMonitorContext } from '../features/monitor/index.js';
 import { loadRecoveryAdmin } from '../features/recovery/index.js';
@@ -34,6 +37,8 @@ export function showView(name, activeButton = null) {
   $('.sidebar').classList.remove('open');
   window.scrollTo({ top: 0, behavior: 'instant' });
   const loaders = {
+    'backups-admin': () => loadOperations('backup', api, toast),
+    'inspection-admin': () => loadOperations('inspection', api, toast),
     users: loadUsers, audit: loadAudit, upstreams: loadUpstreams, 'system-health': loadSystemHealth, 'runtime-settings': loadRuntimeSettings,
     administrators: loadAdministrators, invitations: loadInvitations,
     security: loadResources, data: loadDataPane,

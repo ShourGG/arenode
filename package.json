@@ -20,7 +20,11 @@
     "test:real": "RUN_REAL_CDNFLY_TESTS=1 node --test test/real-upstream-smoke.test.js"
   },
   "dependencies": {
-    "nodemailer": "^10.1.1",
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/lib-storage": "^3.1152.0",
+    "ipaddr.js": "^2.5.0",
+    "linkedom": "^0.18.13",
+    "nodemailer": "^10.1.2",
     "pg": "^8.16.3",
     "redis": "^5.8.1"
   },
@@ -28,6 +32,6 @@
     "pg-mem": "^3.0.5"
   },
   "engines": {
-    "node": ">=22.5"
+    "node": ">=24.22.0"
   }
 }
