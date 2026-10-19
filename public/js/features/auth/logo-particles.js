@@ -1,6 +1,10 @@
 // Sample the existing SVG so particle and static versions share the same silhouette.
 // Only the visible desktop login illustration animates; static SVG is the fallback.
-const FRAME_MS = 1000 / 60;
+// Reference units for physics only. Rendering follows every browser RAF callback.
+const REFERENCE_STEP_MS = 1000 / 60;
+const SPRING_STIFFNESS = .03;
+const SPRING_DRAG = .09;
+const SPRING_FREQUENCY = Math.sqrt(SPRING_STIFFNESS - SPRING_DRAG * SPRING_DRAG);
 
 export function initLogoParticles(art, stage) {
   const logo = stage.querySelector('.art-logo');
@@ -21,7 +25,7 @@ export function initLogoParticles(art, stage) {
   let width = 0, height = 0, side = 0, pixelRatio = 0;
   let bounds = { left: 0, top: 0 };
   let visible = false, loading = false, failed = false;
-  let frame = 0, idleTimer = 0, lastPaint = 0, lastClock = 0, elapsed = 0, burstAt = -Infinity;
+  let frame = 0, idleTimer = 0, lastClock = 0, elapsed = 0, burstAt = -Infinity;
   let color = getComputedStyle(logo).getPropertyValue('--text-2').trim() || '#5b5955';
 
   const eligible = () => desktop.matches && !reduced.matches && visible && !document.hidden && width > 0 && height > 0;
@@ -107,7 +111,7 @@ export function initLogoParticles(art, stage) {
     if (!active) {
       cancelAnimationFrame(frame);
       clearTimeout(idleTimer);
-      frame = idleTimer = lastPaint = lastClock = 0;
+      frame = idleTimer = lastClock = 0;
       if (eligible() && !loading && !failed) void loadSilhouette();
       return;
     }
@@ -121,15 +125,10 @@ export function initLogoParticles(art, stage) {
   function draw(now) {
     frame = 0;
     if (!eligible()) { sync(); return; }
-    if (lastPaint && now - lastPaint < FRAME_MS - 1) {
-      frame = requestAnimationFrame(draw);
-      return;
-    }
-    const delta = lastClock ? now - lastClock : FRAME_MS;
+    const delta = lastClock ? Math.max(0, now - lastClock) : REFERENCE_STEP_MS;
     lastClock = now;
-    lastPaint = now;
     elapsed += delta;
-    const step = Math.min(delta, 40) / (1000 / 60);
+    const step = Math.min(delta, 40) / REFERENCE_STEP_MS;
     const cycle = elapsed % 12500;
     const automatic = cycle > 8500 ? Math.sin((cycle - 8500) / 4000 * Math.PI) ** 2 : 0;
     const intro = Math.max(0, 1 - elapsed / 1600) ** 2;
@@ -138,7 +137,14 @@ export function initLogoParticles(art, stage) {
     const scatter = Math.max(intro, automatic, burst);
     const radius = Math.min(125, side * .24);
     const radiusSquared = radius * radius;
-    const damping = Math.pow(.84, step);
+    // Exact damped-spring coefficients keep the response consistent at 60–240Hz.
+    const decay = Math.exp(-SPRING_DRAG * step);
+    const springSin = Math.sin(SPRING_FREQUENCY * step) / SPRING_FREQUENCY;
+    const springCos = Math.cos(SPRING_FREQUENCY * step);
+    const positionFactor = decay * (springCos + SPRING_DRAG * springSin);
+    const velocityFactor = decay * springSin;
+    const retainedVelocity = decay * (springCos - SPRING_DRAG * springSin);
+    const accelerationFactor = SPRING_STIFFNESS * velocityFactor;
     const twistCos = Math.cos(scatter * .35), twistSin = Math.sin(scatter * .35);
     let motion = 0;
     context.clearRect(0, 0, width, height);
@@ -161,10 +167,11 @@ export function initLogoParticles(art, stage) {
             ty += dy / (distance || 1) * force;
           }
         }
-        particle.vx = (particle.vx + (tx - particle.x) * .035 * step) * damping;
-        particle.vy = (particle.vy + (ty - particle.y) * .035 * step) * damping;
-        particle.x += particle.vx * step;
-        particle.y += particle.vy * step;
+        const errorX = particle.x - tx, errorY = particle.y - ty;
+        particle.x = tx + errorX * positionFactor + particle.vx * velocityFactor;
+        particle.y = ty + errorY * positionFactor + particle.vy * velocityFactor;
+        particle.vx = particle.vx * retainedVelocity - errorX * accelerationFactor;
+        particle.vy = particle.vy * retainedVelocity - errorY * accelerationFactor;
         motion = Math.max(motion, Math.abs(particle.vx) + Math.abs(particle.vy) + Math.abs(tx - particle.x) + Math.abs(ty - particle.y));
         context.moveTo(particle.x + dotRadius, particle.y);
         context.arc(particle.x, particle.y, dotRadius, 0, Math.PI * 2);
@@ -173,7 +180,7 @@ export function initLogoParticles(art, stage) {
     }
     if (scatter === 0 && motion < .02 && elapsed > 2000) {
       // Keep the assembled bitmap until interaction or the next automatic burst.
-      idleTimer = setTimeout(() => { idleTimer = 0; frame = requestAnimationFrame(draw); }, Math.max(FRAME_MS, 8500 - cycle + FRAME_MS));
+      idleTimer = setTimeout(() => { idleTimer = 0; frame = requestAnimationFrame(draw); }, Math.max(1, 8500 - cycle));
     } else frame = requestAnimationFrame(draw);
   }
 

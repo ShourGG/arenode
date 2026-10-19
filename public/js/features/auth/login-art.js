@@ -1,4 +1,4 @@
-import { initLogoParticles } from './logo-particles.js?v=particles-perf-20261019';
+import { initLogoParticles } from './logo-particles.js?v=particles-hfr-20261019';
 
 // 登录页徽标：粒子聚散 + 3D 视差倾斜 + 光标探照灯；重复调用幂等。
 const TILT_DEG = 6;
