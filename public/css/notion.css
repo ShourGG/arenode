@@ -238,6 +238,12 @@ dialog .repeater-head { margin: 0 0 12px; }
   -webkit-mask-size: min(80%, 720px); mask-size: min(80%, 720px);
   animation: art-breathe 9s ease-in-out infinite, art-enter .9s cubic-bezier(.22, .8, .3, 1) both;
 }
+/* Canvas replaces the fill after the original SVG has been sampled successfully. */
+.login-art .art-logo.particles-ready {
+  background: transparent; opacity: 1;
+  -webkit-mask-image: none; mask-image: none;
+}
+.logo-particles { display: block; width: 100%; height: 100%; pointer-events: none; }
 @keyframes art-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
 @keyframes art-enter { from { opacity: 0; translate: 0 18px; } }
 /* ===== 右栏鼠标互动（A 视差倾斜 + 探照灯）：舞台 3D 倾斜跟随光标，按下时轻微按压回弹 ===== */
