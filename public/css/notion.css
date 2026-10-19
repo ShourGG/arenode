@@ -56,7 +56,7 @@ button, a, input, select, textarea { transition-duration: .15s; transition-timin
 .trust-line span { background: var(--green); box-shadow: 0 0 0 5px color-mix(in srgb, var(--green) 12%, transparent); }
 .brand-mark { border-color: var(--line-strong); }
 .brand-mark span { border-color: var(--accent); }
-.login-panel { background: var(--panel); }
+.login-panel { background: transparent; }
 .login-form h2 { color: var(--ink); }
 .mobile-brand { color: var(--ink); font-family: inherit; font-size: 19px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
 .mobile-brand .brand-mark { border-color: var(--line-strong); }
@@ -192,8 +192,12 @@ dialog .repeater-head { margin: 0 0 12px; }
   grid-template-columns: minmax(520px, 44%) 1fr;
   --accent: #ff4d00; --accent-dark: #e04400; --accent-line: #ffd2bd; --bg-accent-soft: #fff1e9;
   --login-glow: #ffeee3;
-  background: linear-gradient(125deg, var(--canvas) 0%, var(--login-glow) 45%, var(--canvas) 100%);
-  background-size: 220% 220%;
+  /* A single backdrop spans both columns, so transparent panels have no seam. */
+  background:
+    radial-gradient(46% 40% at 30% 28%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
+    radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%),
+    linear-gradient(125deg, var(--canvas) 0%, var(--login-glow) 45%, var(--canvas) 100%);
+  background-repeat: no-repeat;
 }
 [data-theme='dark'] .login-shell { --login-glow: #251c16; }
 .login-brand { position: absolute; inset: 0; z-index: 3; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
@@ -212,13 +216,10 @@ dialog .repeater-head { margin: 0 0 12px; }
 .login-form > .eyebrow { margin: 0 0 16px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
 .login-form > h2 { margin: 0 0 14px; font-size: clamp(38px, 4.4vw, 56px); line-height: 1.06; letter-spacing: -.02em; }
 .login-form > .muted { margin: 0 0 36px; font-size: 15px; }
-/* 右栏不铺实心底色、不画左边框：让外壳的流动渐变连续穿过中间，两块 accent 柔光淡出到透明 */
+/* 两栏都透出外壳的共享渐变，柔光不再被右栏边界截断。 */
 .login-art {
   position: relative; overflow: hidden;
-  background:
-    radial-gradient(46% 40% at 30% 28%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
-    radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%);
-  background-repeat: no-repeat;
+  background: transparent;
 }
 /* Factory 官方星形徽标：mask 取令牌色随主题自适应，轻微呼吸缩放 + 入场浮现（不旋转，保持品牌标识稳定） */
 .login-art .art-logo {

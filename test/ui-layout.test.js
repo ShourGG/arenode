@@ -41,7 +41,7 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /@keyframes art-enter \{\s*from \{ opacity: 0/);
   assert.match(css, /@keyframes art-breathe/);
   assert.doesNotMatch(css, /animation:\s*art-gradient/);
-  assert.match(css, /\.login-art\s*\{[^}]*radial-gradient\(46% 40% at 30% 28%, color-mix\(in srgb, var\(--accent\) 13%/);
+  assert.match(css, /\.login-shell\s*\{[^}]*radial-gradient\(46% 40% at 30% 28%, color-mix\(in srgb, var\(--accent\) 13%/);
   // 右栏鼠标互动契约：3D 倾斜舞台 + 按压回弹 + 光标探照灯 + CSS 变量驱动倾斜
   assert.match(css, /\.art-stage\s*\{[^}]*perspective\(1100px\) rotateX\(var\(--tilt-x/);
   assert.match(css, /\.login-art:active \.art-stage\s*\{[^}]*scale\(\.96\)/);
