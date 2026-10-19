@@ -40,16 +40,16 @@ test('新版工作台导航和主面板保持稳定布局', () => {
   assert.match(css, /\.brand-mark\s*\{[^}]*mask: url\('\/assets\/factory-logo\.svg'\)/);
   assert.match(css, /@keyframes art-enter \{\s*from \{ opacity: 0/);
   assert.match(css, /@keyframes art-breathe/);
-  assert.match(css, /@keyframes art-gradient/);
+  assert.doesNotMatch(css, /animation:\s*art-gradient/);
   assert.match(css, /\.login-art\s*\{[^}]*radial-gradient\(46% 40% at 30% 28%, color-mix\(in srgb, var\(--accent\) 13%/);
   // 右栏鼠标互动契约：3D 倾斜舞台 + 按压回弹 + 光标探照灯 + CSS 变量驱动倾斜
   assert.match(css, /\.art-stage\s*\{[^}]*perspective\(1100px\) rotateX\(var\(--tilt-x/);
   assert.match(css, /\.login-art:active \.art-stage\s*\{[^}]*scale\(\.96\)/);
-  assert.match(css, /\.login-art::after\s*\{[^}]*radial-gradient\(circle 190px at var\(--glow-x/);
+  assert.match(css, /\.login-art::after\s*\{[^}]*radial-gradient\(circle 190px at center/);
+  assert.match(css, /\.login-art::after\s*\{[^}]*translate3d\(calc\(var\(--glow-x/);
   assert.match(app, /initLoginArtFx\(\)/);
   assert.match(app, /stage\.style\.setProperty\('--tilt-x'/);
-  assert.match(css, /@keyframes login-bg-pan/);
-  assert.match(css, /\.login-shell:not\(\.hidden\)\s*\{[^}]*login-bg-pan 24s/);
+  assert.doesNotMatch(css, /\.login-shell:not\(\.hidden\)\s*\{[^}]*login-bg-pan/);
   assert.match(css, /\[data-theme='dark'\] \.login-shell\s*\{\s*--login-glow:/);
   assert.match(css, /@keyframes auth-rise/);
   assert.match(app, /appView\.classList\.add\('app-entering'\)/);

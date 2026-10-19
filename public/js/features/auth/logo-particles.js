@@ -1,7 +1,6 @@
 // Sample the existing SVG so particle and static versions share the same silhouette.
 // Only the visible desktop login illustration animates; static SVG is the fallback.
-const SAMPLE_SIZE = 192;
-const FRAME_MS = 1000 / 30;
+const FRAME_MS = 1000 / 60;
 
 export function initLogoParticles(art, stage) {
   const logo = stage.querySelector('.art-logo');
@@ -16,29 +15,41 @@ export function initLogoParticles(art, stage) {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const pointer = { x: 0, y: 0, active: false };
   const groups = [[], [], []];
+  const dotRadii = [];
+  const sampleSize = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4 ? 112 : 144;
   let particles = [];
-  let width = 0, height = 0, side = 0;
+  let width = 0, height = 0, side = 0, pixelRatio = 0;
+  let bounds = { left: 0, top: 0 };
   let visible = false, loading = false, failed = false;
-  let frame = 0, lastPaint = 0, elapsed = 0, burstAt = -Infinity;
+  let frame = 0, idleTimer = 0, lastPaint = 0, lastClock = 0, elapsed = 0, burstAt = -Infinity;
   let color = getComputedStyle(logo).getPropertyValue('--text-2').trim() || '#5b5955';
 
   const eligible = () => desktop.matches && !reduced.matches && visible && !document.hidden && width > 0 && height > 0;
 
+  function sizeDots() {
+    for (let group = 0; group < groups.length; group++) {
+      dotRadii[group] = Math.max(.85, Math.min(2.1, side * .0033)) * (.8 + group * .14);
+    }
+  }
+
   function resize() {
     const rect = art.getBoundingClientRect();
+    bounds = rect;
     const nextWidth = Math.round(rect.width), nextHeight = Math.round(rect.height);
-    if (width !== nextWidth || height !== nextHeight) {
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.25, Math.sqrt(1100000 / Math.max(1, nextWidth * nextHeight)));
+    if (width !== nextWidth || height !== nextHeight || pixelRatio !== ratio) {
       width = nextWidth; height = nextHeight;
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      pixelRatio = ratio;
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       side = Math.min(width * .8, 720);
+      sizeDots();
       for (const particle of particles) {
         particle.homeX = (width - side) / 2 + particle.u * side;
         particle.homeY = (height - side) / 2 + particle.v * side;
-        particle.x = particle.homeX + Math.cos(particle.angle) * particle.spread;
-        particle.y = particle.homeY + Math.sin(particle.angle) * particle.spread;
+        particle.x = particle.homeX + particle.scatterX;
+        particle.y = particle.homeY + particle.scatterY;
         particle.vx = particle.vy = 0;
       }
       pointer.active = false;
@@ -53,21 +64,22 @@ export function initLogoParticles(art, stage) {
       image.src = '/assets/factory-logo.svg';
       await image.decode();
       const mask = document.createElement('canvas');
-      mask.width = mask.height = SAMPLE_SIZE;
+      mask.width = mask.height = sampleSize;
       const maskContext = mask.getContext('2d', { willReadFrequently: true });
       if (!maskContext) throw new Error('Canvas unavailable');
-      maskContext.drawImage(image, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
-      const pixels = maskContext.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE).data;
-      for (let y = 1; y < SAMPLE_SIZE; y += 2) {
-        for (let x = 1; x < SAMPLE_SIZE; x += 2) {
-          if (pixels[(y * SAMPLE_SIZE + x) * 4 + 3] < 160) continue;
-          const u = (x + (Math.random() - .5) * .7) / SAMPLE_SIZE;
-          const v = (y + (Math.random() - .5) * .7) / SAMPLE_SIZE;
+      maskContext.drawImage(image, 0, 0, sampleSize, sampleSize);
+      const pixels = maskContext.getImageData(0, 0, sampleSize, sampleSize).data;
+      for (let y = 1; y < sampleSize; y += 2) {
+        for (let x = 1; x < sampleSize; x += 2) {
+          if (pixels[(y * sampleSize + x) * 4 + 3] < 160) continue;
+          const u = (x + (Math.random() - .5) * .7) / sampleSize;
+          const v = (y + (Math.random() - .5) * .7) / sampleSize;
+          const angle = Math.atan2(v - .5, u - .5) + (Math.random() - .5) * .9;
+          const spread = 85 + Math.random() * 155;
           const particle = {
             u, v, homeX: 0, homeY: 0, x: 0, y: 0, vx: 0, vy: 0,
-            angle: Math.atan2(v - .5, u - .5) + (Math.random() - .5) * .9,
-            spread: 85 + Math.random() * 155,
-            phase: Math.random() * Math.PI * 2,
+            scatterX: Math.cos(angle) * spread,
+            scatterY: Math.sin(angle) * spread,
           };
           particles.push(particle);
           groups[Math.floor(Math.random() * groups.length)].push(particle);
@@ -94,11 +106,16 @@ export function initLogoParticles(art, stage) {
     logo.classList.toggle('particles-ready', Boolean(active));
     if (!active) {
       cancelAnimationFrame(frame);
-      frame = lastPaint = 0;
+      clearTimeout(idleTimer);
+      frame = idleTimer = lastPaint = lastClock = 0;
       if (eligible() && !loading && !failed) void loadSilhouette();
       return;
     }
-    if (!frame) frame = requestAnimationFrame(draw);
+    if (!frame) {
+      clearTimeout(idleTimer);
+      idleTimer = 0;
+      frame = requestAnimationFrame(draw);
+    }
   }
 
   function draw(now) {
@@ -108,10 +125,11 @@ export function initLogoParticles(art, stage) {
       frame = requestAnimationFrame(draw);
       return;
     }
-    const delta = lastPaint ? Math.min(now - lastPaint, 50) : FRAME_MS;
+    const delta = lastClock ? now - lastClock : FRAME_MS;
+    lastClock = now;
     lastPaint = now;
     elapsed += delta;
-    const step = delta / (1000 / 60);
+    const step = Math.min(delta, 40) / (1000 / 60);
     const cycle = elapsed % 12500;
     const automatic = cycle > 8500 ? Math.sin((cycle - 8500) / 4000 * Math.PI) ** 2 : 0;
     const intro = Math.max(0, 1 - elapsed / 1600) ** 2;
@@ -119,24 +137,25 @@ export function initLogoParticles(art, stage) {
     const burst = burstAge < 1900 ? Math.sin(burstAge / 1900 * Math.PI) : 0;
     const scatter = Math.max(intro, automatic, burst);
     const radius = Math.min(125, side * .24);
+    const radiusSquared = radius * radius;
     const damping = Math.pow(.84, step);
+    const twistCos = Math.cos(scatter * .35), twistSin = Math.sin(scatter * .35);
+    let motion = 0;
     context.clearRect(0, 0, width, height);
     context.fillStyle = color;
 
     for (let group = 0; group < groups.length; group++) {
       context.globalAlpha = .52 + group * .16;
+      const dotRadius = dotRadii[group];
       context.beginPath();
-      const dotRadius = Math.max(.75, Math.min(1.7, side * .0025)) * (.8 + group * .14);
       for (const particle of groups[group]) {
-        const angle = particle.angle + scatter * .35;
-        let tx = particle.homeX + Math.cos(angle) * particle.spread * scatter;
-        let ty = particle.homeY + Math.sin(angle) * particle.spread * scatter;
-        tx += Math.sin(elapsed * .0007 + particle.phase) * 1.4;
-        ty += Math.cos(elapsed * .0006 + particle.phase) * 1.4;
+        let tx = particle.homeX + (particle.scatterX * twistCos - particle.scatterY * twistSin) * scatter;
+        let ty = particle.homeY + (particle.scatterX * twistSin + particle.scatterY * twistCos) * scatter;
         if (pointer.active) {
           const dx = particle.x - pointer.x, dy = particle.y - pointer.y;
-          const distance = Math.hypot(dx, dy);
-          if (distance < radius) {
+          const distanceSquared = dx * dx + dy * dy;
+          if (distanceSquared < radiusSquared) {
+            const distance = Math.sqrt(distanceSquared);
             const force = (1 - distance / radius) ** 2 * 100;
             tx += dx / (distance || 1) * force;
             ty += dy / (distance || 1) * force;
@@ -146,30 +165,42 @@ export function initLogoParticles(art, stage) {
         particle.vy = (particle.vy + (ty - particle.y) * .035 * step) * damping;
         particle.x += particle.vx * step;
         particle.y += particle.vy * step;
+        motion = Math.max(motion, Math.abs(particle.vx) + Math.abs(particle.vy) + Math.abs(tx - particle.x) + Math.abs(ty - particle.y));
         context.moveTo(particle.x + dotRadius, particle.y);
         context.arc(particle.x, particle.y, dotRadius, 0, Math.PI * 2);
       }
       context.fill();
     }
-    frame = requestAnimationFrame(draw);
+    if (scatter === 0 && motion < .02 && elapsed > 2000) {
+      // Keep the assembled bitmap until interaction or the next automatic burst.
+      idleTimer = setTimeout(() => { idleTimer = 0; frame = requestAnimationFrame(draw); }, Math.max(FRAME_MS, 8500 - cycle + FRAME_MS));
+    } else frame = requestAnimationFrame(draw);
   }
 
   art.addEventListener('pointermove', event => {
-    const rect = art.getBoundingClientRect();
-    pointer.x = event.clientX - rect.left;
-    pointer.y = event.clientY - rect.top;
+    pointer.x = event.clientX - bounds.left;
+    pointer.y = event.clientY - bounds.top;
     pointer.active = event.pointerType !== 'touch';
+    sync();
   }, { passive: true });
-  art.addEventListener('pointerleave', () => { pointer.active = false; });
+  art.addEventListener('pointerleave', () => { pointer.active = false; sync(); });
   art.addEventListener('pointerdown', event => {
-    if (eligible() && event.button === 0) burstAt = elapsed;
+    if (eligible() && event.button === 0) {
+      // Include time spent displaying the settled bitmap before starting a burst.
+      if (lastClock) { elapsed += performance.now() - lastClock; lastClock = performance.now(); }
+      burstAt = elapsed;
+      sync();
+    }
   }, { passive: true });
   window.addEventListener('arenode:themechange', () => {
     color = getComputedStyle(logo).getPropertyValue('--text-2').trim() || '#5b5955';
+    sync();
   });
   document.addEventListener('visibilitychange', sync);
   desktop.addEventListener('change', resize);
   reduced.addEventListener('change', sync);
+  window.addEventListener('resize', resize, { passive: true });
+  window.addEventListener('scroll', () => { if (visible) bounds = art.getBoundingClientRect(); }, { passive: true });
   new ResizeObserver(resize).observe(art);
   new IntersectionObserver(entries => {
     visible = entries[0].isIntersecting;

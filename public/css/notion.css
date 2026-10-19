@@ -196,8 +196,6 @@ dialog .repeater-head { margin: 0 0 12px; }
   background-size: 220% 220%;
 }
 [data-theme='dark'] .login-shell { --login-glow: #251c16; }
-/* 整页背景渐变过渡：暖橙光晕 24s 缓慢对角平移（与入场淡入并列，避免 shorthand 互相覆盖） */
-@keyframes login-bg-pan { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
 .login-brand { position: absolute; inset: 0; z-index: 3; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; pointer-events: none; }
 .login-brand > * { pointer-events: auto; }
 .brand-mark { width: 32px; height: 32px; border: 0; transform: none; background: var(--accent); -webkit-mask: url('/assets/factory-logo.svg') center / contain no-repeat; mask: url('/assets/factory-logo.svg') center / contain no-repeat; }
@@ -221,12 +219,6 @@ dialog .repeater-head { margin: 0 0 12px; }
     radial-gradient(46% 40% at 30% 28%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 72%),
     radial-gradient(52% 46% at 74% 66%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 72%);
   background-repeat: no-repeat;
-  animation: art-gradient 16s ease-in-out infinite alternate;
-}
-/* 背景极光渐变：两块 accent 柔光缓慢对流 */
-@keyframes art-gradient {
-  from { background-position: -4% -3%, 0% 0%; }
-  to { background-position: 5% 6%, -5% -7%; }
 }
 /* Factory 官方星形徽标：mask 取令牌色随主题自适应，轻微呼吸缩放 + 入场浮现（不旋转，保持品牌标识稳定） */
 .login-art .art-logo {
@@ -242,6 +234,7 @@ dialog .repeater-head { margin: 0 0 12px; }
 .login-art .art-logo.particles-ready {
   background: transparent; opacity: 1;
   -webkit-mask-image: none; mask-image: none;
+  animation: art-enter .9s cubic-bezier(.22, .8, .3, 1) both;
 }
 .logo-particles { display: block; width: 100%; height: 100%; pointer-events: none; }
 @keyframes art-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
@@ -259,13 +252,14 @@ dialog .repeater-head { margin: 0 0 12px; }
 }
 /* 光标探照灯：跟随光标的橙色柔光（JS 写入 --glow-x/y，无 JS 时停在中央） */
 .login-art::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(circle 190px at var(--glow-x, 50%) var(--glow-y, 50%), color-mix(in srgb, var(--accent) 18%, transparent), transparent 72%);
+  content: ''; position: absolute; left: 0; top: 0; width: 380px; height: 380px; pointer-events: none;
+  background: radial-gradient(circle 190px at center, color-mix(in srgb, var(--accent) 18%, transparent), transparent 72%);
+  transform: translate3d(calc(var(--glow-x, 0px) - 50%), calc(var(--glow-y, 0px) - 50%), 0);
   opacity: 0; transition: opacity .35s ease;
 }
 .login-art:hover::after { opacity: 1; }
 /* 登录页进场：整页淡入 + 表单元素依次升起（切换表单时自动重播） */
-.login-shell:not(.hidden) { animation: login-fade .45s ease-out, login-bg-pan 24s ease-in-out infinite alternate; }
+.login-shell:not(.hidden) { animation: login-fade .45s ease-out; }
 @keyframes login-fade { from { opacity: 0; } }
 .login-form > * { animation: auth-rise .5s cubic-bezier(.22, .8, .3, 1) both; }
 .login-form > *:nth-child(2) { animation-delay: 60ms; }
